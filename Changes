@@ -1,5 +1,7 @@
 Changelog for App::sslmaker
 
 0.01
-       * Started project
+       * Can make key, cert and csr
+       * Can make directory strucures
+       * Can run openssl with temp config file
 
