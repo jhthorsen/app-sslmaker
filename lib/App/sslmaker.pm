@@ -23,6 +23,21 @@ L<https://jamielinux.com/blog/category/CA/>.
 This module is used by the C<sslmaker> command line application, but can also
 act as a standalone toolkit.
 
+From L<https://jamielinux.com/articles/2013/08/act-as-your-own-certificate-authority/>:
+
+  Most websites, such as shopping, banking or email websites, need to let their
+  customers know that the connection is secure. Thus, they need to pay a
+  well-known and internationally trusted CA (eg, VeriSign) to issue an SSL
+  certificate. However, this isn't always necessary. For example, if you're
+  setting up a virtual private network (VPN) or an intranet website, it might
+  make more sense to issue your own certificates.
+
+  Being a CA means dealing with cryptographic pairs of private keys and public
+  certificates. Ideally the cryptographic pairs should be generated in a secure
+  environment, which means a personal laptop or computer that is disconnected
+  from the Internet. It is not recommended to generate any certificates
+  directly on your server.
+
 =head1 DISCLAIMER
 
 This module is based on tips and tricks from online resources, and has been
@@ -227,6 +242,14 @@ if C<passphrase> does not exist, it will be created with a random passphrase.
 The returned C<$asset> is a L<Path::Tiny> object which holds the generated key.
 It is possible to specify the location of this object by passing on C<key> to
 this method.
+
+From L<https://jamielinux.com/articles/2013/08/act-as-your-own-certificate-authority/>:
+
+  The very first cryptographic pair we generate includes what is known as a
+  root certificate. The root key (ca.key.pem) generated in this step should be
+  kept extremely secure, otherwise an attacker can issue valid certificates for
+  themselves. We'll therefore protect it with AES 256-bit encryption and a
+  strong password just in case it falls into the wrong hands.
 
 =cut
 
