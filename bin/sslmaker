@@ -52,7 +52,7 @@ sub action_ca {
 sub action_intermediate {
   my ($self, @args) = @_;
   my $sslmaker = App::sslmaker->new(subject => $self->subject);
-  my $home = $self->home ? Path::Tiny->new($self->home) : Path::Tiny->new('pki/intermediate')->absolute;
+  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
   my $ca_home = $self->ca_home ? Path::Tiny->new($self->ca_home) : $home->parent->child('CA')->absolute;
 
   my $args = {
@@ -89,6 +89,53 @@ sub action_intermediate {
   });
 
   warn "Done.\n";
+}
+
+sub action_server {
+  my $self = shift;
+  my $domain = shift || die "Usage: $0 server <domain>\n";
+  my $sslmaker = App::sslmaker->new(subject => $self->subject);
+  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
+  my $args = {
+    # key
+    home => $home,
+    bits => $self->bits || App::sslmaker::DEFAULT_BITS(),
+    key => "$domain.key.pem",
+    # csr
+    csr => "$domain.csr.pem",
+    days => $self->days || App::sslmaker::DEFAULT_DAYS(),
+    subject => "/CN=$domain",
+  };
+
+  $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
+  $self->run_maybe($args->{csr}, sub { $sslmaker->$wrapper(make_csr => $args) });
+  print "// Next: Need to send $args->{csr} to SSL admin for signing.\n";
+  warn "Done.\n";
+}
+
+sub action_sign {
+  my ($self, $csr, $cert) = @_;
+  my $sslmaker = App::sslmaker->new(subject => $self->subject);
+  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
+
+  unless ($cert) {
+    $cert = $csr;
+    $cert =~ s!\.pem$!\.cert.pem!;
+  }
+
+  $sslmaker->$wrapper(sign_csr => {
+    home => $home,
+    ca_cert => $home->child('certs/intermediate.cert.pem'),
+    ca_key => $home->child('private/intermediate.key.pem'),
+    cert => $cert,
+    csr => $csr,
+    extensions => 'usr_cert',
+    passphrase => $home->child('private/passphrase'),
+  });
+
+  print "// Generated $cert\n";
+  warn "Done.\n";
+  warn "Run this command for more details: openssl x509 -in $cert -noout -text\n";
 }
 
 sub catch {
@@ -144,6 +191,9 @@ sslmaker - Generate SSL key, cert and csr
 =head1 SYNOPSIS
 
   $ sslmaker --home /path/to/pki/CA ca
+  $ sslmaker --home /path/to/pki/CA intermediate
+  $ sslmaker --home /path/to/pki/CA server www.example.com
+  $ sslmaker --home /path/to/pki/CA sign www.example.com.csr.pem [outfile]
 
 Set SSLMAKER_DEBUG=0 to avoid openssl output.
 
