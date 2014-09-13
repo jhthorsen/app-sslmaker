@@ -5,9 +5,9 @@ use App::sslmaker;
 use Data::Dumper ();
 
 option int => bits => 'SSL key bit size';
-option str => ca_home => 'Location of root SSL files';
 option int => days => 'Number of days the cert should be valid';
 option str => home => 'Location of intermediate SSL files';
+option str => root_home => 'Location of root SSL files';
 option str => subject => 'Specify a SSL certificate subject string', $ENV{SSLMAKER_SUBJECT} || '';
 
 documentation __FILE__;
@@ -26,7 +26,7 @@ sub d {
   $json;
 }
 
-sub action_ca {
+sub action_root {
   my ($self, @args) = @_;
   my $sslmaker = App::sslmaker->new(subject => $self->subject);
   my $home = $self->home ? Path::Tiny->new($self->home) : Path::Tiny->new('pki/CA')->absolute;
@@ -85,7 +85,7 @@ sub action_intermediate {
   my ($self, @args) = @_;
   my $sslmaker = App::sslmaker->new(subject => $self->subject);
   my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
-  my $ca_home = $self->ca_home ? Path::Tiny->new($self->ca_home) : $home->parent->child('CA')->absolute;
+  my $root_home = $self->root_home ? Path::Tiny->new($self->root_home) : $home->parent->child('CA')->absolute;
 
   my $args = {
     # key
@@ -97,8 +97,8 @@ sub action_intermediate {
     csr => $home->child('certs/intermediate.csr.pem'),
     days => $self->days || 365 * 10,
     # cert
-    ca_cert => $ca_home->child('certs/ca.cert.pem'),
-    ca_key => $ca_home->child('private/ca.key.pem'),
+    ca_cert => $root_home->child('certs/ca.cert.pem'),
+    ca_key => $root_home->child('private/ca.key.pem'),
     cert => $home->child('certs/intermediate.cert.pem'),
     extensions => 'v3_ca',
   };
@@ -108,14 +108,14 @@ sub action_intermediate {
   $sslmaker->make_directories({ home => $home, templates => 1 });
   $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
   $self->run_maybe($args->{csr}, sub { $sslmaker->$wrapper(make_csr => $args) });
-  $args->{passphrase} = $ca_home->child('private/passphrase');
+  $args->{passphrase} = $root_home->child('private/passphrase');
   $self->run_maybe($args->{cert}, sub { $sslmaker->$wrapper(sign_csr => $args) });
 
   $args->{chain_cert} = $home->child('certs/ca-chain.cert.pem');
-  $sslmaker->_cat(@$args{qw( cert ca_cert chain_cert )});
+  $sslmaker->_cat(@$args{qw( cert root_cert chain_cert )});
   print "// Generated $args->{chain_cert} from CA and intermediate certificate\n";
 
-  $sslmaker->_openssl(verify => -CAfile => @$args{qw( ca_cert cert )}, sub {
+  $sslmaker->_openssl(verify => -CAfile => @$args{qw( root_cert cert )}, sub {
     my ($sslmaker, $output) = @_;
     die $output if $output =~ /error/;
   });
@@ -224,11 +224,11 @@ sslmaker - Generate SSL key, cert and csr
 
   # Generate root CA key and certificate
   # https://jamielinux.com/articles/2013/08/act-as-your-own-certificate-authority/
-  $ sslmaker --home /path/to/pki/CA ca
+  $ sslmaker --home /path/to/pki/CA root
 
   # Generate intermediate CA key and certificate
   # https://jamielinux.com/articles/2013/08/create-an-intermediate-certificate-authority/
-  $ sslmaker --ca-home /path/to/pki/CA --home /path/to/pki/intermediate intermediate
+  $ sslmaker --root-home /path/to/pki/CA --home /path/to/pki/intermediate intermediate
 
   # Generate client or server key and certificate signing request
   # https://jamielinux.com/articles/2013/08/create-and-sign-ssl-certificates-certificate-authority/
