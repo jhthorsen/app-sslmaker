@@ -1,0 +1,4 @@
+sslmaker in this directory is fatpacked, meaning it can be run
+without downloading any dependencies.
+
+...at least if you're not running Perl from the last decade.
