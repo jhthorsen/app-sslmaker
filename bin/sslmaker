@@ -4,11 +4,11 @@ use Applify;
 use App::sslmaker;
 use Data::Dumper ();
 
-option int => bits => 'Number of key bit size';
-option str => ca_home => 'Root location of CA SSL files';
+option int => bits => 'SSL key bit size';
+option str => ca_home => 'Location of root SSL files';
 option int => days => 'Number of days the cert should be valid';
-option str => home => 'Root location of SSL files';
-option str => subject => 'Specify a SSL subject string', $ENV{SSLMAKER_SUBJECT} || '';
+option str => home => 'Location of intermediate SSL files';
+option str => subject => 'Specify a SSL certificate subject string', $ENV{SSLMAKER_SUBJECT} || '';
 
 documentation __FILE__;
 version 'App::sslmaker';
@@ -107,7 +107,7 @@ sub action_nginx {
   );
 }
 
-sub action_server {
+sub action_generate {
   my $self = shift;
   my $domain = shift || die "Usage: $0 server <domain>\n";
   my $sslmaker = App::sslmaker->new(subject => $self->subject);
@@ -206,16 +206,27 @@ sslmaker - Generate SSL key, cert and csr
 
 =head1 SYNOPSIS
 
+  $ sslmaker [options] {action} {arg1,...}
+
+  # Generate root CA key and certificate
+  # https://jamielinux.com/articles/2013/08/act-as-your-own-certificate-authority/
   $ sslmaker --home /path/to/pki/CA ca
-  $ sslmaker --home /path/to/pki/CA intermediate
-  $ sslmaker --home /path/to/pki/CA server www.example.com
-  $ sslmaker --home /path/to/pki/CA nginx www.example.com
-  $ sslmaker --home /path/to/pki/CA sign www.example.com.csr.pem [outfile]
+
+  # Generate intermediate CA key and certificate
+  # https://jamielinux.com/articles/2013/08/create-an-intermediate-certificate-authority/
+  $ sslmaker --ca-home /path/to/pki/CA --home /path/to/pki/intermediate intermediate
+
+  # Generate client or server key and certificate signing request
+  # https://jamielinux.com/articles/2013/08/create-and-sign-ssl-certificates-certificate-authority/
+  $ sslmaker --home /path/to/pki/intermediate generate www.example.com
+  $ sslmaker --home /path/to/pki/intermediate nginx www.example.com
+
+  # Sign a certificate signing request
+  $ sslmaker --home /path/to/pki/intermediate sign www.example.com.csr.pem [outfile]
 
 Set SSLMAKER_DEBUG=0 to avoid openssl output.
-
-Set OPENSSL_CONF=/some/path/openssl.cnf if you want to use your custom openssl
-config.
+Set SSLMAKER_HOME=/etc/pki for default --home.
+Set SSLMAKER_SUBJECT=/C=US for default --subject.
 
 =head1 DISCLAIMER, COPYRIGHT AND LICENSE
 
