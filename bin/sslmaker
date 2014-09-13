@@ -49,6 +49,38 @@ sub action_ca {
   warn "Done.\n";
 }
 
+sub action_code {
+  my $self = shift;
+
+  for my $file ($0, $INC{'App/sslmaker.pm'}) {
+    print "--- $file\n";
+    local @ARGV = ($file);
+    print for <>;
+  }
+}
+
+sub action_generate {
+  my $self = shift;
+  my $domain = shift || die "Usage: $0 server <domain>\n";
+  my $sslmaker = App::sslmaker->new(subject => $self->subject);
+  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
+  my $args = {
+    # key
+    home => $home,
+    bits => $self->bits || App::sslmaker::DEFAULT_BITS(),
+    key => "$domain.key.pem",
+    # csr
+    csr => "$domain.csr.pem",
+    days => $self->days || App::sslmaker::DEFAULT_DAYS(),
+    subject => "/CN=$domain",
+  };
+
+  $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
+  $self->run_maybe($args->{csr}, sub { $sslmaker->$wrapper(make_csr => $args) });
+  print "// Next: Need to send $args->{csr} to SSL admin for signing.\n";
+  warn "Done.\n";
+}
+
 sub action_intermediate {
   my ($self, @args) = @_;
   my $sslmaker = App::sslmaker->new(subject => $self->subject);
@@ -107,26 +139,8 @@ sub action_nginx {
   );
 }
 
-sub action_generate {
-  my $self = shift;
-  my $domain = shift || die "Usage: $0 server <domain>\n";
-  my $sslmaker = App::sslmaker->new(subject => $self->subject);
-  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
-  my $args = {
-    # key
-    home => $home,
-    bits => $self->bits || App::sslmaker::DEFAULT_BITS(),
-    key => "$domain.key.pem",
-    # csr
-    csr => "$domain.csr.pem",
-    days => $self->days || App::sslmaker::DEFAULT_DAYS(),
-    subject => "/CN=$domain",
-  };
-
-  $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
-  $self->run_maybe($args->{csr}, sub { $sslmaker->$wrapper(make_csr => $args) });
-  print "// Next: Need to send $args->{csr} to SSL admin for signing.\n";
-  warn "Done.\n";
+sub action_pod {
+  exec perldoc => 'App::sslmaker';
 }
 
 sub action_sign {
@@ -223,6 +237,10 @@ sslmaker - Generate SSL key, cert and csr
 
   # Sign a certificate signing request
   $ sslmaker --home /path/to/pki/intermediate sign www.example.com.csr.pem [outfile]
+
+  # Show the manual for App::sslmaker or the complete source code
+  $ sslmaker pod
+  $ sslmaker source | less
 
 Set SSLMAKER_DEBUG=0 to avoid openssl output.
 Set SSLMAKER_HOME=/etc/pki for default --home.
