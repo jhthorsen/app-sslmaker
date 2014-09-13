@@ -37,12 +37,14 @@ $intermediate_home->remove_tree({ safe => 0 }) if -d $intermediate_home;
   diag 'make intermediate';
   my $sslmaker = App::sslmaker->new;
   my $intermediate_args = {
+    home => $intermediate_home,
+
+    key => $intermediate_home->child('private/intermediate.key.pem'),
     bits => 1024, # really bad bits
+    passphrase => $intermediate_home->child('private/passphrase'),
+
     csr => $intermediate_home->child('certs/intermediate.csr.pem'),
     days => 20,
-    home => $intermediate_home,
-    key => $intermediate_home->child('private/intermediate.key.pem'),
-    passphrase => $ca_home->child('private/passphrase'),
     subject => '/CN=test.example.com',
   };
 
@@ -58,12 +60,12 @@ $intermediate_home->remove_tree({ safe => 0 }) if -d $intermediate_home;
   is +(stat $asset)[2] & 0777, 0400, 'csr mode 400';
 
   $asset = $sslmaker->with_config(sign_csr => {
-              home => $intermediate_home,
-              csr => $intermediate_args->{csr},
-              ca_key => $ca_args->{key},
               ca_cert => $ca_args->{cert},
-              passphrase => $ca_args->{passphrase},
+              ca_key => $ca_args->{key},
+              csr => $intermediate_args->{csr},
               extensions => 'v3_ca',
+              home => $intermediate_home,
+              passphrase => $ca_args->{passphrase},
             });
 
   ok -e $asset, 'csr was signed with ca key';

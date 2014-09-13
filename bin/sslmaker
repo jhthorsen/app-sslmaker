@@ -1,0 +1,161 @@
+#!/usr/bin/env perl
+BEGIN { $ENV{SSLMAKER_DEBUG} //= 1; }
+use Applify;
+use App::sslmaker;
+use Data::Dumper ();
+
+option int => bits => 'Number of key bit size';
+option str => ca_home => 'Root location of CA SSL files';
+option int => days => 'Number of days the cert should be valid';
+option str => home => 'Root location of SSL files';
+option str => subject => 'Specify a SSL subject string', $ENV{SSLMAKER_SUBJECT} || '';
+
+documentation __FILE__;
+version 'App::sslmaker';
+
+my $wrapper = sub {
+  my ($sslmaker, $method, @args) = @_;
+  return $ENV{OPENSSL_CONF} ? $sslmaker->$method(@args) : $sslmaker->with_config($method, @args);
+};
+
+sub d {
+  my $d = {@_};
+  $_ and $_ = "$_" for values %$d;
+  my $json = Data::Dumper->new([$d])->Indent(1)->Sortkeys(1)->Terse(1)->Useqq(1)->Dump;
+  $json =~ s/" => /": /g; # ugly
+  $json;
+}
+
+sub action_ca {
+  my ($self, @args) = @_;
+  my $sslmaker = App::sslmaker->new(subject => $self->subject);
+  my $home = $self->home ? Path::Tiny->new($self->home) : Path::Tiny->new('pki/CA')->absolute;
+  my $args = {
+    # key
+    home => $home,
+    bits => $self->bits || 8192,
+    key => $home->child('private/ca.key.pem'),
+    passphrase => $home->child('private/passphrase'),
+    # cert
+    cert => $home->child('certs/ca.cert.pem'),
+    days => $self->days || 365 * 20,
+  };
+
+  print d %$args;
+  $sslmaker->subject or die "--subject is required\n";
+  $sslmaker->make_directories({ home => $home, templates => 1 });
+  $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
+  $self->run_maybe($args->{cert}, sub { $sslmaker->$wrapper(make_cert => $args) });
+  warn "Done.\n";
+}
+
+sub action_intermediate {
+  my ($self, @args) = @_;
+  my $sslmaker = App::sslmaker->new(subject => $self->subject);
+  my $home = $self->home ? Path::Tiny->new($self->home) : Path::Tiny->new('pki/intermediate')->absolute;
+  my $ca_home = $self->ca_home ? Path::Tiny->new($self->ca_home) : $home->parent->child('CA')->absolute;
+
+  my $args = {
+    # key
+    home => $home,
+    key => $home->child('private/intermediate.key.pem'),
+    bits => $self->bits || App::sslmaker::DEFAULT_BITS(),
+    passphrase => $home->child('private/passphrase'),
+    # csr
+    csr => $home->child('certs/intermediate.csr.pem'),
+    days => $self->days || 365 * 10,
+    # cert
+    ca_cert => $ca_home->child('certs/ca.cert.pem'),
+    ca_key => $ca_home->child('private/ca.key.pem'),
+    cert => $home->child('certs/intermediate.cert.pem'),
+    extensions => 'v3_ca',
+  };
+
+  print d %$args;
+  $sslmaker->subject or die "--subject is required\n";
+  $sslmaker->make_directories({ home => $home, templates => 1 });
+  $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
+  $self->run_maybe($args->{csr}, sub { $sslmaker->$wrapper(make_csr => $args) });
+  $args->{passphrase} = $ca_home->child('private/passphrase');
+  $self->run_maybe($args->{cert}, sub { $sslmaker->$wrapper(sign_csr => $args) });
+
+  $args->{chain_cert} = $home->child('certs/ca-chain.cert.pem');
+  $sslmaker->_cat(@$args{qw( cert ca_cert chain_cert )});
+  print "// Generated $args->{chain_cert} from CA and intermediate certificate\n";
+
+  $sslmaker->_openssl(verify => -CAfile => @$args{qw( ca_cert cert )}, sub {
+    my ($sslmaker, $output) = @_;
+    die $output if $output =~ /error/;
+  });
+
+  warn "Done.\n";
+}
+
+sub catch {
+  my $self = shift;
+  my $errno = $!;
+  my $errstr = $@;
+
+  # remove stacktrace
+  $errstr =~ s!\sat\s\S+\sline.*!!s;
+
+  # parse openssl exception
+  if ($errstr =~ s!\sFAIL\s\((\d+)\)\s\((.*)\)$!!s) {
+    $errno = $1;
+    $errstr = $2;
+  }
+
+  $! = $errno;
+  die $errstr;
+}
+
+sub run_maybe {
+  my ($self, $file, $cb) = @_;
+
+  if (-e $file) {
+    print "// File $file exists.\n";
+  }
+  else {
+    $self->$cb;
+    print "// Generated $_[1]\n";
+  }
+}
+
+app {
+  my ($self, $action, @args) = @_;
+
+  unless ($action and $self->can("action_$action")) {
+    $self->_script->print_help;
+    return 0;
+  }
+
+  eval {
+    $self->can("action_$action")->($self, @args);
+    1;
+  } or $self->catch;
+
+  return 0;
+};
+
+=head1 NAME
+
+sslmaker - Generate SSL key, cert and csr
+
+=head1 SYNOPSIS
+
+  $ sslmaker --home /path/to/pki/CA ca
+
+Set SSLMAKER_DEBUG=0 to avoid openssl output.
+
+Set OPENSSL_CONF=/some/path/openssl.cnf if you want to use your custom openssl
+config.
+
+=head1 DISCLAIMER, COPYRIGHT AND LICENSE
+
+See L<App::sslmaker>
+
+=head1 AUTHOR
+
+Jan Henning Thorsen - C<jhthorsen@cpan.org>
+
+=cut

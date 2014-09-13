@@ -57,6 +57,8 @@ use Carp 'confess';
 use Path::Tiny;
 use File::umask;
 use constant DEBUG => $ENV{SSLMAKER_DEBUG} ? 1 : 0;
+use constant DEFAULT_BITS => 4096;
+use constant DEFAULT_DAYS => 365;
 
 our $VERSION = '0.01';
 our $OPENSSL = 'openssl';
@@ -123,7 +125,7 @@ sub make_cert {
   $self->_openssl(
     qw( req -new -sha256 -x509 -extensions v3_ca ),
     -passin => $self->_passphrase($args->{passphrase}),
-    -days => $args->{days} || 365,
+    -days => $args->{days} || DEFAULT_DAYS,
     -key => $args->{key} || '',
     -out => $asset->path,
     -subj => $self->_render_ssl_subject($args->{subject}),
@@ -138,6 +140,7 @@ sub make_cert {
               key => "/path/to/private/input.key.pem",
               passphrase => "/path/to/passphrase.txt",
               subject => '/C=NO/ST=Oslo',
+              days => $number_of_days, # default: 365
             });
 
 This method will generate a SSL certificate signing request using a C<key>
@@ -161,6 +164,7 @@ sub make_csr {
     qw( req -new -sha256 ),
     $args->{passphrase} ? (-passin => $self->_passphrase($args->{passphrase})) : (),
     -key => $args->{key},
+    -days => $args->{days} || DEFAULT_DAYS,
     -out => $asset->path,
     -subj => $self->_render_ssl_subject($args->{subject}),
   );
@@ -242,7 +246,7 @@ sub make_key {
     'genrsa',
     $passphrase ? (-aes256 => -passout => $passphrase) : (),
     -out => $asset->path,
-    $args->{bits} || 4096,
+    $args->{bits} || DEFAULT_BITS,
   );
 
   return $asset;
@@ -315,7 +319,7 @@ sub sign_csr {
   local $UMASK = 0222; # make files with mode 444
 
   $self->_openssl(
-    qw( ca -batch ),
+    qw( ca -batch -notext -md sha256 ),
     -keyfile => $args->{ca_key},
     -cert => $args->{ca_cert},
     -passin => $self->_passphrase($args->{passphrase}),
@@ -376,6 +380,7 @@ sub _cat {
 }
 
 sub _openssl {
+  my $cb = ref $_[-1] eq 'CODE' ? pop : sub { warn $_[1] if length $_[1] and DEBUG == 2 };
   my $self = shift;
   my $out = '';
 
@@ -387,7 +392,7 @@ sub _openssl {
   $out .= $_ while readline $OUT;
   waitpid $pid, 0;
   confess sprintf 'openssl %s FAIL (%s) (%s)', join(' ', @_), $? >> 8, $out if $?;
-  warn $out if DEBUG;
+  $self->$cb($out);
 }
 
 sub _passphrase {
@@ -511,7 +516,7 @@ RANDFILE = $dir/private/.rand
 x509_extensions = usr_cert
 name_opt = ca_default
 cert_opt = ca_default
-default_days = <%= $stash->{days} || 365 %>
+default_days = <%= $stash->{days} || DEFAULT_DAYS %>
 default_crl_days = <%= $stash->{crl_days} || 30 %>
 default_md = default
 preserve = no
@@ -527,7 +532,7 @@ commonName = supplied
 emailAddress = optional
 
 [ req ]
-default_bits = <%= $stash->{bits} || 4096 %>
+default_bits = <%= $stash->{bits} || DEFAULT_BITS %>
 default_md = sha1
 default_keyfile = privkey.pem
 distinguished_name = req_distinguished_name
