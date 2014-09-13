@@ -282,11 +282,9 @@ See L</TEMPLATES> for list of valid templates.
 sub render_to_file {
   my $stash = pop;
   my ($self, $name, $path) = @_;
-  my $template = $DATA{$name} // confess "No such template: $name";
+  my $template = $self->_render_template($name, $stash);
   my $asset;
 
-  # super cheap template parser
-  $template =~ s!<%=\s*([^%]+)\s*%>!{eval $1 // die $@}!ges;
   $asset = $path ? Path::Tiny->new($path) : Path::Tiny->tempfile;
   $asset->spew({binmode => ":raw"}, $template);
   $asset;
@@ -421,6 +419,13 @@ sub _render_ssl_subject {
   return join '/', '', map { "$_=$subject{$_}" } grep { defined $subject{$_} } qw( C ST L O OU CN emailAddress );
 }
 
+sub _render_template {
+  my ($self, $name, $stash) = @_;
+  my $template = $DATA{$name} // confess "No such template: $name";
+  $template =~ s!<%=\s*([^%]+)\s*%>!{eval $1 // die $@}!ges; # super cheap template parser
+  $template;
+}
+
 =head1 TEMPLATES
 
 L</render_to_file> can render these templates, which is bundled with this module:
@@ -478,13 +483,13 @@ __DATA__
 @@ nginx.config
 server {
   listen 443;
-  server_name <%= $stash->{server_name} || 'example.com' %>;
+  server_name <%= $stash->{domain} || 'example.com' %>;
 
   ssl on;
   ssl_certificate_key <%= $stash->{key} %>;
   ssl_certificate <%= $stash->{cert} %>;
-  ssl_client_certificate <%= $stash->{client_certificate} %>;
-  ssl_crl <%= $stash->{crl} %>;
+  ssl_client_certificate <%= $stash->{ca_cert} %>;
+  ssl_crl <%= $stash->{crl} || 'TODO' %>;
   ssl_verify_client <%= $stash->{verify_client} || 'optional' %>;
 
   location / {

@@ -91,6 +91,22 @@ sub action_intermediate {
   warn "Done.\n";
 }
 
+sub action_nginx {
+  my $self = shift;
+  my $domain = shift || die "Usage: $0 nginx <domain>\n";
+  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
+
+  print App::sslmaker->_render_template(
+    'nginx.config',
+    {
+      domain => $domain,
+      key => "/etc/nginx/ssl/$domain.key.pem",
+      cert => "/etc/nginx/ssl/$domain.cert.pem",
+      ca_cert => $home->child('certs/intermediate.cert.pem'),
+    },
+  );
+}
+
 sub action_server {
   my $self = shift;
   my $domain = shift || die "Usage: $0 server <domain>\n";
@@ -120,7 +136,7 @@ sub action_sign {
 
   unless ($cert) {
     $cert = $csr;
-    $cert =~ s!\.pem$!\.cert.pem!;
+    $cert =~ s!(\.csr)?\.pem$!\.cert.pem!;
   }
 
   $sslmaker->$wrapper(sign_csr => {
@@ -193,6 +209,7 @@ sslmaker - Generate SSL key, cert and csr
   $ sslmaker --home /path/to/pki/CA ca
   $ sslmaker --home /path/to/pki/CA intermediate
   $ sslmaker --home /path/to/pki/CA server www.example.com
+  $ sslmaker --home /path/to/pki/CA nginx www.example.com
   $ sslmaker --home /path/to/pki/CA sign www.example.com.csr.pem [outfile]
 
 Set SSLMAKER_DEBUG=0 to avoid openssl output.
