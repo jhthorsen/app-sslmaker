@@ -57,6 +57,7 @@ library.
   $ sslmaker --root-home /path/to/pki/CA --home /path/to/pki/intermediate intermediate
 
   # Generate client or server key and certificate signing request
+  $ sslmaker --home /path/to/pki/intermediate generate <commonName>
   $ sslmaker --home /path/to/pki/intermediate generate www.example.com
   $ sslmaker --home /path/to/pki/intermediate nginx www.example.com
 
