@@ -64,7 +64,7 @@ $intermediate_home->remove_tree({ safe => 0 }) if -d $intermediate_home;
               ca_key => $ca_args->{key},
               csr => $intermediate_args->{csr},
               extensions => 'v3_ca',
-              home => $intermediate_home,
+              home => $ca_home,
               passphrase => $ca_args->{passphrase},
             });
 
@@ -74,9 +74,8 @@ $intermediate_home->remove_tree({ safe => 0 }) if -d $intermediate_home;
   undef $asset;
   ok -e $intermediate_home->child('certs/intermediate.cert.pem'), 'intermediate cert was moved from temp location';
 
-  local $TODO = 'should this be ca_home index.txt and serial?';
-  like $intermediate_home->child('index.txt')->slurp, qr{CN=test\.example\.com}, 'cert was added to index.txt';
-  like $intermediate_home->child('serial')->slurp, qr{^1001$}m, 'serial was modified';
+  like $ca_home->child('index.txt')->slurp, qr{CN=test\.example\.com}, 'cert was added to index.txt';
+  like $ca_home->child('serial')->slurp, qr{^1001$}m, 'serial was modified';
 }
 
 done_testing;

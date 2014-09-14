@@ -108,6 +108,7 @@ sub action_intermediate {
   $sslmaker->make_directories({ home => $home, templates => 1 });
   $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
   $self->run_maybe($args->{csr}, sub { $sslmaker->$wrapper(make_csr => $args) });
+  $args->{home} = $root_home;
   $args->{passphrase} = $root_home->child('private/passphrase');
   $self->run_maybe($args->{cert}, sub { $sslmaker->$wrapper(sign_csr => $args) });
 
