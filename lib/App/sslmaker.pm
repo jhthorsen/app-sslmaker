@@ -139,7 +139,7 @@ Holds the default subject field for the certificates.
 
 sub subject {
   return do { $_[0]->{subject} = $_[1]; $_[0] } if @_ == 2;
-  $_[0]->{subject} ||= '/C=NO/ST=Oslo/L=Oslo/O=Example/OU=Prime/emailAddress=admin@example.com';
+  $_[0]->{subject} //= '/C=NO/ST=Oslo/L=Oslo/O=Example/OU=Prime/CN=example.com/emailAddress=admin@example.com';
   return $_[0]->{subject};
 }
 

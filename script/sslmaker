@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-BEGIN { $ENV{SSLMAKER_DEBUG} //= 1; }
+BEGIN { $ENV{SSLMAKER_DEBUG} //= grep { /^--silent/ } @ARGV ? 0 : 1; }
 use Applify;
 use App::sslmaker;
 use Data::Dumper ();
@@ -8,7 +8,8 @@ option int => bits => 'SSL key bit size';
 option int => days => 'Number of days the cert should be valid';
 option str => home => 'Location of intermediate SSL files';
 option str => root_home => 'Location of root SSL files';
-option str => subject => 'Specify a SSL certificate subject string', $ENV{SSLMAKER_SUBJECT} || '';
+option str => subject => 'Example: /C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=example.com/emailAddress=admin@example.com', $ENV{SSLMAKER_SUBJECT} || '';
+option bool => silent => 'Only output data on failure';
 
 documentation __FILE__;
 version 'App::sslmaker';
@@ -41,27 +42,27 @@ sub action_root {
     days => $self->days || 365 * 20,
   };
 
-  print d %$args;
+  $self->_print(d %$args);
   $sslmaker->subject or die "--subject is required\n";
   $sslmaker->make_directories({ home => $home, templates => 1 });
   $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
   $self->run_maybe($args->{cert}, sub { $sslmaker->$wrapper(make_cert => $args) });
-  warn "Done.\n";
+  $self->_warn("Done.\n");
 }
 
 sub action_code {
   my $self = shift;
 
-  for my $file ($0, $INC{'App/sslmaker.pm'}) {
-    print "--- $file\n";
+  for my $file (__FILE__, $INC{'App/sslmaker.pm'}) {
+    $self->_print("--- $file\n");
     local @ARGV = ($file);
-    print for <>;
+    $self->_print for <>;
   }
 }
 
 sub action_generate {
   my $self = shift;
-  my $cn = shift || die "Usage: $0 server <commonName>\n";
+  my $cn = shift || die "Usage: $0 generate <CN>\n";
   my $sslmaker = App::sslmaker->new(subject => $self->subject);
   my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
   my $args = {
@@ -75,10 +76,11 @@ sub action_generate {
     subject => "/CN=$cn",
   };
 
+  $sslmaker->subject or die "--subject is required\n";
   $self->run_maybe($args->{key}, sub { $sslmaker->make_key($args) });
   $self->run_maybe($args->{csr}, sub { $sslmaker->make_csr($args) });
-  print "// Next: Need to send $args->{csr} to SSL admin for signing.\n";
-  warn "Done.\n";
+  $self->_print("// Next: Need to send $args->{csr} to SSL admin for signing.\n");
+  $self->_warn("Done.\n");
 }
 
 sub action_intermediate {
@@ -103,7 +105,7 @@ sub action_intermediate {
     extensions => 'v3_ca',
   };
 
-  print d %$args;
+  $self->_print(d %$args);
   $sslmaker->subject or die "--subject is required\n";
   $sslmaker->make_directories({ home => $home, templates => 1 });
   $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
@@ -113,15 +115,15 @@ sub action_intermediate {
   $self->run_maybe($args->{cert}, sub { $sslmaker->$wrapper(sign_csr => $args) });
 
   $args->{chain_cert} = $home->child('certs/ca-chain.cert.pem');
-  $sslmaker->_cat(@$args{qw( cert root_cert chain_cert )});
-  print "// Generated $args->{chain_cert} from CA and intermediate certificate\n";
+  $sslmaker->_cat(@$args{qw( cert ca_cert chain_cert )});
+  $self->_print("// Generated $args->{chain_cert} from CA and intermediate certificate\n");
 
-  $sslmaker->openssl(verify => -CAfile => @$args{qw( root_cert cert )}, sub {
+  $sslmaker->openssl(verify => -CAfile => @$args{qw( ca_cert cert )}, sub {
     my ($sslmaker, $output) = @_;
     die $output if $output =~ /error/;
   });
 
-  warn "Done.\n";
+  $self->_warn("Done.\n");
 }
 
 sub action_nginx {
@@ -129,14 +131,16 @@ sub action_nginx {
   my $domain = shift || die "Usage: $0 nginx <domain>\n";
   my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
 
-  print App::sslmaker->_render_template(
-    'nginx.config',
-    {
-      domain => $domain,
-      key => "/etc/nginx/ssl/$domain.key.pem",
-      cert => "/etc/nginx/ssl/$domain.cert.pem",
-      ca_cert => $home->child('certs/intermediate.cert.pem'),
-    },
+  $self->_print(
+    App::sslmaker->_render_template(
+      'nginx.config',
+      {
+        domain => $domain,
+        key => "/etc/nginx/ssl/$domain.key.pem",
+        cert => "/etc/nginx/ssl/$domain.cert.pem",
+        ca_cert => $home->child('certs/intermediate.cert.pem'),
+      },
+    )
   );
 }
 
@@ -146,7 +150,7 @@ sub action_pod {
 
 sub action_sign {
   my ($self, $csr, $cert) = @_;
-  my $sslmaker = App::sslmaker->new(subject => $self->subject);
+  my $sslmaker = App::sslmaker->new;
   my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
 
   unless ($cert) {
@@ -164,9 +168,9 @@ sub action_sign {
     passphrase => $home->child('private/passphrase'),
   });
 
-  print "// Generated $cert\n";
-  warn "Done.\n";
-  warn "Run this command for more details: openssl x509 -in $cert -noout -text\n";
+  $self->_print("// Generated $cert\n");
+  $self->_warn("Done.\n");
+  $self->_warn("Run this command for more details: openssl x509 -in $cert -noout -text\n");
 }
 
 sub catch {
@@ -191,13 +195,16 @@ sub run_maybe {
   my ($self, $file, $cb) = @_;
 
   if (-e $file) {
-    print "// File $file exists.\n";
+    $self->_print("// File $file exists.\n");
   }
   else {
     $self->$cb;
-    print "// Generated $_[1]\n";
+    $self->_print("// Generated $_[1]\n");
   }
 }
+
+sub _print { shift->silent or print @_ }
+sub _warn { shift->silent or warn @_ }
 
 app {
   my ($self, $action, @args) = @_;
@@ -233,7 +240,7 @@ sslmaker - Generate SSL key, cert and csr
 
   # Generate client or server key and certificate signing request
   # https://jamielinux.com/articles/2013/08/create-and-sign-ssl-certificates-certificate-authority/
-  $ sslmaker --home /path/to/pki/intermediate generate <commonName>
+  $ sslmaker --home /path/to/pki/intermediate generate <CN>
   $ sslmaker --home /path/to/pki/intermediate generate www.example.com
   $ sslmaker --home /path/to/pki/intermediate nginx www.example.com
 

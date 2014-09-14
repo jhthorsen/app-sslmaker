@@ -9,11 +9,11 @@ my $sslmaker = App::sslmaker->new;
 
 {
   ok $sslmaker->isa('App::sslmaker'), 'App::sslmaker';
-  is $sslmaker->subject, '/C=NO/ST=Oslo/L=Oslo/O=Example/OU=Prime/emailAddress=admin@example.com', 'default subject';
+  is $sslmaker->subject, '/C=NO/ST=Oslo/L=Oslo/O=Example/OU=Prime/CN=example.com/emailAddress=admin@example.com', 'default subject';
   like $sslmaker->_random_passphrase(63), qr/^[A-Za-z0-9]{63}$/, 'generated passphrase';
   is(
-    $sslmaker->_render_ssl_subject('/C=US/emailAddress=jhthorsen@cpan.org'),
-    '/C=US/ST=Oslo/L=Oslo/O=Example/OU=Prime/emailAddress=jhthorsen@cpan.org',
+    $sslmaker->_render_ssl_subject('/C=US/CN=/emailAddress=jhthorsen@cpan.org'),
+    '/C=US/ST=Oslo/L=Oslo/O=Example/OU=Prime/CN=/emailAddress=jhthorsen@cpan.org',
     'merged ssl subject',
   );
 
