@@ -116,7 +116,7 @@ sub action_intermediate {
   $sslmaker->_cat(@$args{qw( cert root_cert chain_cert )});
   print "// Generated $args->{chain_cert} from CA and intermediate certificate\n";
 
-  $sslmaker->_openssl(verify => -CAfile => @$args{qw( root_cert cert )}, sub {
+  $sslmaker->openssl(verify => -CAfile => @$args{qw( root_cert cert )}, sub {
     my ($sslmaker, $output) = @_;
     die $output if $output =~ /error/;
   });

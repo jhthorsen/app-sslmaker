@@ -17,7 +17,7 @@ my $sslmaker = App::sslmaker->new;
     'merged ssl subject',
   );
 
-  is eval { $sslmaker->_openssl(qw( genrsa -invalid )); 'ok' }, undef, 'genrsa -invalid 42';
+  is eval { $sslmaker->openssl(qw( genrsa -invalid )); 'ok' }, undef, 'genrsa -invalid 42';
   like $@, qr{^openssl genrsa -invalid FAIL \(\d+\) .}, 'openssl died';
 }
 

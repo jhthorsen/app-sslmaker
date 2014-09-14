@@ -94,7 +94,7 @@ use constant DEFAULT_BITS => 4096;
 use constant DEFAULT_DAYS => 365;
 
 our $VERSION = '0.01';
-our $OPENSSL = 'openssl';
+our $OPENSSL = $ENV{SSLMAKER_OPENSSL} || 'openssl';
 
 my @CONFIG_TEMPLATE_KEYS = qw( bits cert crl_days days home key );
 
@@ -108,6 +108,23 @@ my %DATA = do {
   shift @$data; # first element is empty string
   @$data;
 };
+
+# "private" for now
+sub openssl {
+  my $cb = ref $_[-1] eq 'CODE' ? pop : sub { warn $_[1] if length $_[1] and DEBUG == 2 };
+  my $self = ref $_[0] ? shift : __PACKAGE__;
+  my $out = '';
+
+  use IPC::Open3;
+  use Symbol;
+  warn "\$ $OPENSSL @_\n" if DEBUG;
+  my $OUT = gensym;
+  my $pid = open3(undef, $OUT, $OUT, $OPENSSL => @_);
+  $out .= $_ while readline $OUT;
+  waitpid $pid, 0;
+  confess sprintf 'openssl %s FAIL (%s) (%s)', join(' ', @_), $? >> 8, $out if $?;
+  $self->$cb($out);
+}
 
 =head1 ATTRIBUTES
 
@@ -155,14 +172,12 @@ sub make_cert {
 
   local $UMASK = 0222; # make files with mode 444
 
-  $self->_openssl(
-    qw( req -new -sha256 -x509 -extensions v3_ca ),
+  openssl qw( req -new -sha256 -x509 -extensions v3_ca ),
     -passin => $self->_passphrase($args->{passphrase}),
     -days => $args->{days} || DEFAULT_DAYS,
     -key => $args->{key} || '',
     -out => $asset->path,
-    -subj => $self->_render_ssl_subject($args->{subject}),
-  );
+    -subj => $self->_render_ssl_subject($args->{subject});
 
   return $asset;
 }
@@ -193,14 +208,12 @@ sub make_csr {
 
   local $UMASK = 0277; # make files with mode 400
 
-  $self->_openssl(
-    qw( req -new -sha256 ),
+  openssl qw( req -new -sha256 ),
     $args->{passphrase} ? (-passin => $self->_passphrase($args->{passphrase})) : (),
     -key => $args->{key},
     -days => $args->{days} || DEFAULT_DAYS,
     -out => $asset->path,
-    -subj => $self->_render_ssl_subject($args->{subject}),
-  );
+    -subj => $self->_render_ssl_subject($args->{subject});
 
   return $asset;
 }
@@ -283,12 +296,10 @@ sub make_key {
     Path::Tiny->new($1)->spew({binmode => ':raw'}, $self->_random_passphrase(64)) if $passphrase =~ m!^file:(.+)! and !-e $1;
   }
 
-  $self->_openssl(
-    'genrsa',
+  openssl 'genrsa',
     $passphrase ? (-aes256 => -passout => $passphrase) : (),
     -out => $asset->path,
-    $args->{bits} || DEFAULT_BITS,
-  );
+    $args->{bits} || DEFAULT_BITS;
 
   return $asset;
 }
@@ -357,15 +368,13 @@ sub sign_csr {
 
   local $UMASK = 0222; # make files with mode 444
 
-  $self->_openssl(
-    qw( ca -batch -notext -md sha256 ),
+  openssl qw( ca -batch -notext -md sha256 ),
     -keyfile => $args->{ca_key},
     -cert => $args->{ca_cert},
     -passin => $self->_passphrase($args->{passphrase}),
     -extensions => $args->{extensions} || 'usr_cert',
     -out => $asset->path,
-    -in => $args->{csr},
-  );
+    -in => $args->{csr};
 
   return $asset;
 }
@@ -416,22 +425,6 @@ sub _cat {
   print $DEST $_ for <>;
   close $DEST or confess "Close $dest failed: $!";
   return $dest;
-}
-
-sub _openssl {
-  my $cb = ref $_[-1] eq 'CODE' ? pop : sub { warn $_[1] if length $_[1] and DEBUG == 2 };
-  my $self = shift;
-  my $out = '';
-
-  use IPC::Open3;
-  use Symbol;
-  warn "\$ $OPENSSL @_\n" if DEBUG;
-  my $OUT = gensym;
-  my $pid = open3(undef, $OUT, $OUT, $OPENSSL => @_);
-  $out .= $_ while readline $OUT;
-  waitpid $pid, 0;
-  confess sprintf 'openssl %s FAIL (%s) (%s)', join(' ', @_), $? >> 8, $out if $?;
-  $self->$cb($out);
 }
 
 sub _passphrase {
