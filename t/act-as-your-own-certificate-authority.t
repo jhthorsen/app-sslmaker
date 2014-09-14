@@ -5,6 +5,7 @@ use App::sslmaker;
 # https://jamielinux.com/articles/2013/08/act-as-your-own-certificate-authority/
 
 plan skip_all => 'linux is required' unless $^O eq 'linux';
+plan skip_all => 'openssl is required' if system 'openssl -h 2>/dev/null';
 
 my $sslmaker = App::sslmaker->new;
 my $home = Path::Tiny->new('local/tmp/step-1-ca');

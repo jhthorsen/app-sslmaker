@@ -3,6 +3,7 @@ use Test::More;
 use App::sslmaker;
 
 plan skip_all => 'linux is required' unless $^O eq 'linux';
+plan skip_all => 'openssl is required' if system 'openssl -h 2>/dev/null';
 mkdir 'local';
 
 my $sslmaker = App::sslmaker->new;
