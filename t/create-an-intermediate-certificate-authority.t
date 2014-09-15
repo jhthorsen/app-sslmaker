@@ -36,6 +36,7 @@ $intermediate_home->remove_tree({ safe => 0 }) if -d $intermediate_home;
 
 {
   diag 'make intermediate';
+  my $cert;
   my $sslmaker = App::sslmaker->new;
   my $intermediate_args = {
     home => $intermediate_home,
@@ -70,10 +71,11 @@ $intermediate_home->remove_tree({ safe => 0 }) if -d $intermediate_home;
             });
 
   ok -e $asset, 'csr was signed with ca key';
-  $asset->move($intermediate_home->child('certs/intermediate.cert.pem'));
+  $cert = $asset->parent->child('intermediate.cert.pem');
+  $asset->move($cert);
   undef $sslmaker;
   undef $asset;
-  ok -e $intermediate_home->child('certs/intermediate.cert.pem'), 'intermediate cert was moved from temp location';
+  ok -e $cert, 'intermediate cert was moved from temp location';
 
   like $ca_home->child('index.txt')->slurp, qr{CN=test\.example\.com}, 'cert was added to index.txt';
   like $ca_home->child('serial')->slurp, qr{^1001$}m, 'serial was modified';
