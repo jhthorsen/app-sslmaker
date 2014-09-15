@@ -61,3 +61,4 @@
 ^MANIFEST\.SKIP
 ^README\.pod
 ^pki
+^bin
