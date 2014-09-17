@@ -241,7 +241,7 @@ expects. Set C<$emplates> to a true value to generate L<files|/render_to_file>.
 
 sub make_directories {
   my ($self, $args) = @_;
-  my $home = Path::Tiny->new($args->{home});
+  my $home = $self->_home($args);
   my $file;
 
   $home->mkpath;
@@ -334,9 +334,10 @@ See L</TEMPLATES> for list of valid templates.
 sub render_to_file {
   my $stash = pop;
   my ($self, $name, $path) = @_;
-  my $template = $self->_render_template($name, $stash);
+  my $template = $DATA{$name} // confess "No such template: $name";
   my $asset;
 
+  $template =~ s!<%=\s*([^%]+)\s*%>!{eval $1 // confess $@}!ges; # super cheap template parser
   $asset = $path ? Path::Tiny->new($path) : Path::Tiny->tempfile;
   $asset->spew({binmode => ":raw"}, $template);
   $asset;
@@ -407,6 +408,8 @@ sub with_config {
   my ($self, $cb, $args) = @_;
   my $key = join ':', 'config', map { ($_, $args->{$_} // ''); } @CONFIG_TEMPLATE_KEYS;
 
+  local $args->{home} = $self->_home($args);
+
   {
     local $UMASK = 0177; # read/write for current user
     $self->{$key} ||= $self->render_to_file('openssl.cnf', $args);
@@ -425,6 +428,14 @@ sub _cat {
   print $DEST $_ for <>;
   close $DEST or confess "Close $dest failed: $!";
   return $dest;
+}
+
+sub _home {
+  my ($self, $args) = @_;
+  return Path::Tiny->new($args->{home}) if exists $args->{home};
+  return Path::Tiny->new($args->{ca_key})->parent(2) if $args->{ca_key};
+  return Path::Tiny->new($args->{key})->parent(2) if $args->{key};
+  confess 'home is required';
 }
 
 sub _passphrase {
@@ -451,13 +462,6 @@ sub _render_ssl_subject {
   }
 
   return join '/', '', map { "$_=$subject{$_}" } grep { defined $subject{$_} } qw( C ST L O OU CN emailAddress );
-}
-
-sub _render_template {
-  my ($self, $name, $stash) = @_;
-  my $template = $DATA{$name} // confess "No such template: $name";
-  $template =~ s!<%=\s*([^%]+)\s*%>!{eval $1 // die $@}!ges; # super cheap template parser
-  $template;
 }
 
 =head1 TEMPLATES
