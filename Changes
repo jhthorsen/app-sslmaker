@@ -1,5 +1,8 @@
 Changelog for App::sslmaker
 
+0.02
+       * Able to generate certificate revocation list
+
 0.01     Mon Sep 15 09:35:42 2014
        * Add bin/sslmaker
        * Can make key, cert and csr

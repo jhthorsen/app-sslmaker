@@ -189,6 +189,43 @@ sub make_cert {
   return $asset;
 }
 
+=head2 make_crl
+
+  $asset = $self->make_crl({
+              key => "/path/to/private/input.key.pem",
+              cert => "/path/to/cefrt/input.cert.pem",
+              passphrase => "/path/to/passphrase.txt", # optional
+            });
+
+This method will generate a certificate revocation list (CRL) using a C<key> generated
+by L</make_key>. C<passphrase> should match the argument given to L</make_key>.
+
+The returned C<$asset> is a L<Path::Tiny> object which holds the generated certificate
+file. It is possible to specify the location of this object by passing on C<crl> to
+this method.
+
+You can inspect the generated asset using the command
+C<openssl crl -in $crl_asset -text>.
+
+See also L</revoke_cert>.
+
+=cut
+
+sub make_crl {
+  my ($self, $args) = @_;
+  my $asset = $args->{crl} ? Path::Tiny->new($args->{crl}) : Path::Tiny->tempfile;
+
+  local $UMASK = 0122; # make files with mode 644
+
+  openssl qw( ca -gencrl ),
+    -keyfile => $args->{key},
+    -cert => $args->{cert},
+    $args->{passphrase} ? (-passin => $self->_passphrase($args->{passphrase})) : (),
+    -out => $asset->path;
+
+  return $asset;
+}
+
 =head2 make_csr
 
   $asset = $self->make_csr({
@@ -258,6 +295,7 @@ sub make_directories {
 
   if ($args->{templates}) {
     local $UMASK = 0122; # make files with mode 644
+    $self->render_to_file('crlnumber', $file, {}) unless -e ($file = $home->child('crlnumber'));
     $self->render_to_file('index.txt', $file, {}) unless -e ($file = $home->child('index.txt'));
     $self->render_to_file('serial', $file, {}) unless -e ($file = $home->child('serial'));
   }
@@ -348,6 +386,32 @@ sub render_to_file {
   $asset = $path ? Path::Tiny->new($path) : Path::Tiny->tempfile;
   $asset->spew({binmode => ":raw"}, $template);
   $asset;
+}
+
+=head2 revoke_cert
+
+  $self->with_config(
+    revoke_cert => {
+      key => "/path/to/private/ca.key.pem",
+      cert => "/path/to/certs/ca.cert.pem",
+      crl => "/path/to/crl.pem",
+      revoke => "/path/to/newcerts/1000.pem",
+    },
+  );
+
+This method can revoke a certificate. It need to be run either with
+C<OPENSSL_CONF> or inside L</with_config>.
+
+=cut
+
+sub revoke_cert {
+  my ($self, $args) = @_;
+  my $revoke = $args->{revoke};
+
+  openssl ca => -revoke => $revoke;
+
+  # TODO: Not sure about the return value
+  return $self->make_crl($args);
 }
 
 =head2 sign_csr
@@ -477,6 +541,11 @@ L</render_to_file> can render these templates, which is bundled with this module
 
 =over 4
 
+=item * crlnumber
+
+Creates a file which stores the SSL CRL number. If C<n> is present in
+C<%stash>, it will be used as the start number, which defaults to 1000.
+
 =item * index.txt
 
 This is currently just an empty file.
@@ -522,6 +591,8 @@ Jan Henning Thorsen - C<jhthorsen@cpan.org>
 
 1;
 __DATA__
+@@ crlnumber
+<%= $stash->{n} || 1000 %>
 @@ index.txt
 @@ serial
 <%= $stash->{n} || 1000 %>
@@ -564,6 +635,7 @@ crl = $dir/crl.pem
 private_key = <%= $stash->{key} || '$dir/private/ca.key.pem' %>
 RANDFILE = $dir/private/.rand
 x509_extensions = usr_cert
+crl_extensions = crl_ext
 name_opt = ca_default
 cert_opt = ca_default
 default_days = <%= $stash->{days} || DEFAULT_DAYS %>
