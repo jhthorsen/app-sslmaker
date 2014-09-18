@@ -1,5 +1,9 @@
 Changelog for App::sslmaker
 
+0.03
+       * Add "revoke" action to sslmaker
+       * Change default intermediate key/cert filenames
+
 0.02     Thu Sep 18 07:55:27 2014
        * Change default days for root and intermediate
        * Able to generate certificate revocation list

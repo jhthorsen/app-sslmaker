@@ -406,12 +406,15 @@ C<OPENSSL_CONF> or inside L</with_config>.
 
 sub revoke_cert {
   my ($self, $args) = @_;
-  my $revoke = $args->{revoke};
+  my $home = $self->_home($args);
 
-  openssl ca => -revoke => $revoke;
+  local $args->{crl} = $args->{crl} || $home->child('crl.pem');
 
-  # TODO: Not sure about the return value
-  return $self->make_crl($args);
+  openssl qw( ca ),
+    $args->{passphrase} ? (-passin => $self->_passphrase($args->{passphrase})) : (),
+    -revoke => $args->{revoke};
+
+  return $self->make_crl($args); # TBD, but will be true
 }
 
 =head2 sign_csr
@@ -631,7 +634,7 @@ new_certs_dir = $dir/newcerts
 certificate = <%= $stash->{cert} || '$dir/certs/ca.cert.pem' %>
 serial = $dir/serial
 crlnumber = $dir/crlnumber
-crl = $dir/crl.pem
+crl = <%= $stash->{crl} || '$dir/crl.pem' %>
 private_key = <%= $stash->{key} || '$dir/private/ca.key.pem' %>
 RANDFILE = $dir/private/.rand
 x509_extensions = usr_cert

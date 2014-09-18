@@ -27,6 +27,22 @@ sub d {
   $json;
 }
 
+sub action_revoke {
+  my ($self, $cert) = @_;
+  my $sslmaker = App::sslmaker->new;
+  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
+  my $passphrase = $home->child('private/passphrase');
+
+  $sslmaker->$wrapper(revoke_cert => {
+    cert => $home->child('certs/ca.cert.pem'),
+    key => $home->child('private/ca.key.pem'),
+    passphrase => -e $passphrase ? $passphrase : undef,
+    revoke => $cert,
+  });
+
+  $self->_warn("Done.\n");
+}
+
 sub action_root {
   my ($self, @args) = @_;
   my $sslmaker = App::sslmaker->new(subject => $self->subject);
@@ -92,16 +108,16 @@ sub action_intermediate {
   my $args = {
     # key
     home => $home,
-    key => $home->child('private/intermediate.key.pem'),
+    key => $home->child('private/ca.key.pem'),
     bits => $self->bits || App::sslmaker::DEFAULT_BITS(),
     passphrase => $home->child('private/passphrase'),
     # csr
-    csr => $home->child('certs/intermediate.csr.pem'),
+    csr => $home->child('certs/ca.csr.pem'),
     days => $self->days || 365 * 28,
     # cert
     ca_cert => $root_home->child('certs/ca.cert.pem'),
     ca_key => $root_home->child('private/ca.key.pem'),
-    cert => $home->child('certs/intermediate.cert.pem'),
+    cert => $home->child('certs/ca.cert.pem'),
     extensions => 'v3_ca',
   };
 
@@ -165,8 +181,8 @@ sub action_sign {
 
   $sslmaker->$wrapper(sign_csr => {
     home => $home,
-    ca_cert => $home->child('certs/intermediate.cert.pem'),
-    ca_key => $home->child('private/intermediate.key.pem'),
+    ca_cert => $home->child('certs/ca.cert.pem'),
+    ca_key => $home->child('private/ca.key.pem'),
     cert => $cert,
     csr => $csr,
     extensions => 'usr_cert',
@@ -245,12 +261,16 @@ sslmaker - Generate SSL key, cert and csr
 
   # Generate client or server key and certificate signing request
   # https://jamielinux.com/articles/2013/08/create-and-sign-ssl-certificates-certificate-authority/
-  $ sslmaker --home /path/to/pki/intermediate generate <CN>
+  $ sslmaker --home /path/to/pki/intermediate generate [CN]
   $ sslmaker --home /path/to/pki/intermediate generate www.example.com
   $ sslmaker --home /path/to/pki/intermediate nginx www.example.com
 
   # Sign a certificate signing request
   $ sslmaker --home /path/to/pki/intermediate sign www.example.com.csr.pem [outfile]
+
+  # Revoke a certificate
+  $ sslmaker --home /path/to/pki/intermediate revoke [cert]
+  $ sslmaker --home /path/to/pki/intermediate revoke intermediate/newcerts/1000.pem
 
   # Show the manual for App::sslmaker or the complete source code
   $ sslmaker pod

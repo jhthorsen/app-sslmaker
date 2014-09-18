@@ -7,8 +7,11 @@ $ENV{SSLMAKER_SUBJECT} = '/C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=sup
 plan skip_all => 'linux is required' unless $^O eq 'linux';
 plan skip_all => 'openssl is required' if system 'openssl -h 2>/dev/null';
 
+my @unlink = map { my $i = $_; map { "client$i.example.com.$_.pem" } qw( cert csr key ) } 1..2;
 my $root = path('local/tmp/sslmaker-exe');
 my $script;
+
+unlink @unlink;
 
 {
   local @ARGV = qw( --silent );
@@ -36,11 +39,11 @@ my $script;
   $script->root_home($root->child('CA'));
   $script->home($root->child('intermediate'));
   $script->run('intermediate');
-  ok -e $root->child('intermediate/certs/intermediate.cert.pem'), 'intermediate/certs/intermediate.cert.pem';
-  ok -e $root->child('intermediate/certs/intermediate.csr.pem'), 'intermediate/certs/intermediate.csr.pem';
+  ok -e $root->child('intermediate/certs/ca.cert.pem'), 'intermediate/certs/ca.cert.pem';
+  ok -e $root->child('intermediate/certs/ca.csr.pem'), 'intermediate/certs/ca.csr.pem';
   ok -e $root->child('intermediate/certs/ca-chain.cert.pem'), 'intermediate/certs/ca-chain.cert.pem';
   ok -e $root->child('intermediate/index.txt'), 'intermediate/index.txt';
-  ok -e $root->child('intermediate/private/intermediate.key.pem'), 'intermediate/private/intermediate.key.pem';
+  ok -e $root->child('intermediate/private/ca.key.pem'), 'intermediate/private/ca.key.pem';
   ok -e $root->child('intermediate/private/passphrase'), 'intermediate/private/passphrase';
   ok -e $root->child('intermediate/serial'), 'intermediate/serial';
 }
@@ -48,17 +51,33 @@ my $script;
 {
   diag 'sslmaker generate example.com';
   $script->root_home('');
-  $script->run(qw( generate example.com ));
-  ok -e 'example.com.key.pem', 'example.com.key.pem';
-  ok -e 'example.com.csr.pem', 'example.com.csr.pem';
-  ok !-e 'example.com.cert.pem', 'example.com.cert.pem need to be created by intermediate';
+  $script->run(qw( generate client1.example.com ));
+  $script->run(qw( generate client2.example.com ));
+  ok -e 'client1.example.com.key.pem', 'client1.example.com.key.pem';
+  ok -e 'client1.example.com.csr.pem', 'client1.example.com.csr.pem';
+  ok !-e 'client1.example.com.cert.pem', 'client1.example.com.cert.pem need to be created by intermediate';
 
   diag 'sslmaker sign example.com.csr.pem';
   $script->root_home('');
-  $script->run(qw( sign example.com.csr.pem ));
-  ok -e 'example.com.cert.pem', 'example.com.cert.pem was created by intermediate';
+  $script->run(qw( sign client1.example.com.csr.pem ));
+  $script->run(qw( sign client2.example.com.csr.pem ));
+  ok -e 'client2.example.com.cert.pem', 'client2.example.com.cert.pem was created by intermediate';
 
-  unlink qw( example.com.cert.pem example.com.csr.pem example.com.key.pem );
+  my $index = $root->child('intermediate/index.txt')->slurp;
+  like $index, qr{^V.*CN=client1\.example\.com$}m, 'index.txt has V client1.example.com';
+  like $index, qr{^V.*CN=client2\.example\.com$}m, 'index.txt has V client2.example.com';
 }
+
+{
+  diag 'sslmaker revoke example.com';
+  $script->run(qw( revoke client2.example.com.cert.pem ));
+  $script->run(qw( revoke client1.example.com.cert.pem ));
+
+  my $index = $root->child('intermediate/index.txt')->slurp;
+  like $index, qr{^R.*CN=client1\.example\.com$}m, 'index.txt has R client1.example.com';
+  like $index, qr{^R.*CN=client2\.example\.com$}m, 'index.txt has R client2.example.com';
+}
+
+unlink @unlink;
 
 done_testing;
