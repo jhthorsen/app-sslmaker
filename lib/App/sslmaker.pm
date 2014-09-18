@@ -113,17 +113,24 @@ my %DATA = do {
 sub openssl {
   my $cb = ref $_[-1] eq 'CODE' ? pop : sub { warn $_[1] if length $_[1] and DEBUG == 2 };
   my $self = ref $_[0] ? shift : __PACKAGE__;
-  my $out = '';
+  my $buf = '';
 
   use IPC::Open3;
   use Symbol;
   warn "\$ $OPENSSL @_\n" if DEBUG;
   my $OUT = gensym;
   my $pid = open3(undef, $OUT, $OUT, $OPENSSL => @_);
-  $out .= $_ while readline $OUT;
+
+  while (1) {
+    my $l = sysread $OUT, my $read, 8096;
+    confess "$OPENSSL: $!" unless defined $l;
+    last unless $l;
+    $buf .= $read;
+  }
+
   waitpid $pid, 0;
-  confess sprintf 'openssl %s FAIL (%s) (%s)', join(' ', @_), $? >> 8, $out if $?;
-  $self->$cb($out);
+  confess sprintf 'openssl %s FAIL (%s) (%s)', join(' ', @_), $? >> 8, $buf if $?;
+  $self->$cb($buf);
 }
 
 =head1 ATTRIBUTES
