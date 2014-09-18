@@ -1,6 +1,6 @@
 Changelog for App::sslmaker
 
-0.03
+0.03     Thu Sep 18 23:42:19 2014
        * Add "revoke" action to sslmaker
        * Change default intermediate key/cert filenames
 
