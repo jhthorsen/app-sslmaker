@@ -1,6 +1,7 @@
 Changelog for App::sslmaker
 
 0.02
+       * Change default days for root and intermediate
        * Able to generate certificate revocation list
        * Add test for setting up a real server/client
 

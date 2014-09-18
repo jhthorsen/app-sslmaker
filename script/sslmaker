@@ -39,7 +39,7 @@ sub action_root {
     passphrase => $home->child('private/passphrase'),
     # cert
     cert => $home->child('certs/ca.cert.pem'),
-    days => $self->days || 365 * 20,
+    days => $self->days || 365 * 30,
   };
 
   $self->_print(d %$args);
@@ -97,7 +97,7 @@ sub action_intermediate {
     passphrase => $home->child('private/passphrase'),
     # csr
     csr => $home->child('certs/intermediate.csr.pem'),
-    days => $self->days || 365 * 10,
+    days => $self->days || 365 * 28,
     # cert
     ca_cert => $root_home->child('certs/ca.cert.pem'),
     ca_key => $root_home->child('private/ca.key.pem'),
