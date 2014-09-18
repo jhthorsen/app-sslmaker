@@ -143,7 +143,7 @@ sub run_echo_server {
 }
 
 sub connect_to_echo_server {
-  my $guard = 1;
+  my $guard = 3;
   my %args = (
     PeerHost => $host,
     PeerPort => $port,
@@ -155,7 +155,7 @@ sub connect_to_echo_server {
 
   while($guard--) {
     diag "Trying to connect to server ($pid)";
-    usleep 400e3;
+    usleep 300e3;
     my $client = IO::Socket::SSL->new(%args) or next;
     return $client;
   }
