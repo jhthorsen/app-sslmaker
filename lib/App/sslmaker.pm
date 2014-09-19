@@ -66,19 +66,16 @@ library.
 
 =head1 SYNOPSIS
 
-  my $sslmaker = App::sslmaker->new;
-
-  my $asset = $sslmaker->make_csr({
-                key => "/path/to/private/input.key.pem",
-                passphrase => "/path/to/passphrase.txt",
-                subject => '/C=NO/ST=Oslo',
-              });
+  my $sslmaker = App::sslmaker->new(subject => '/C=US/ST=Gotham/L=Gotham/O=Wayne Enterprises/OU=Batcave/CN=batman');
+  my $key = $sslmaker->make_key;
+  my $csr = $sslmaker->make_csr({ key => $key->path });
 
   # the content of the csr
-  print $asset->slurp;
+  print $csr->slurp;
 
   # move to a non-temp location
-  $asset->move("/path/to/certs/output.csr.pem");
+  $csr->move("/path/to/certs/output.csr.pem");
+  $key->move("/path/to/certs/output.csr.pem");
 
 All methods will throw an exception on error, unless otherwise noted.
 
@@ -140,7 +137,7 @@ sub openssl {
   $self = $self->subject('/C=NO/ST=Oslo/L=Oslo/O=Example/OU=Prime/emailAddress=admin@example.com');
   $str = $self->subject;
 
-Holds the default subject field for the certificates.
+Holds the default subject field for the certificate.
 
 =cut
 
