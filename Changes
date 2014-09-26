@@ -1,5 +1,8 @@
 Changelog for App::sslmaker
 
+0.04
+       * Fix "nginx" action
+
 0.03     Thu Sep 18 23:42:19 2014
        * Add "revoke" action to sslmaker
        * Change default intermediate key/cert filenames

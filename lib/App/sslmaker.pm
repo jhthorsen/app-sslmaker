@@ -376,10 +376,9 @@ See L</TEMPLATES> for list of valid templates.
 sub render_to_file {
   my $stash = pop;
   my ($self, $name, $path) = @_;
-  my $template = $DATA{$name} // confess "No such template: $name";
+  my $template = $self->_render_template($name, $stash);
   my $asset;
 
-  $template =~ s!<%=\s*([^%]+)\s*%>!{eval $1 // confess $@}!ges; # super cheap template parser
   $asset = $path ? Path::Tiny->new($path) : Path::Tiny->tempfile;
   $asset->spew({binmode => ":raw"}, $template);
   $asset;
@@ -533,6 +532,14 @@ sub _render_ssl_subject {
   }
 
   return join '/', '', map { "$_=$subject{$_}" } grep { defined $subject{$_} } qw( C ST L O OU CN emailAddress );
+}
+
+# used in script/sslmaker
+sub _render_template {
+  my ($self, $name, $stash) = @_;
+  my $template = $DATA{$name} // confess "No such template: $name";
+  $template =~ s!<%=\s*([^%]+)\s*%>!{eval $1 // confess $@}!ges; # super cheap template parser
+  $template;
 }
 
 =head1 TEMPLATES
