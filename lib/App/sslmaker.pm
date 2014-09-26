@@ -614,6 +614,7 @@ server {
   ssl_client_certificate <%= $stash->{ca_cert} %>;
   ssl_crl <%= $stash->{crl} || 'TODO' %>;
   ssl_verify_client <%= $stash->{verify_client} || 'optional' %>;
+  ssl_verify_depth 2;
 
   location / {
     proxy_pass http://127.0.0.1:8080;

@@ -14,7 +14,7 @@ $fatpacked{"App/sslmaker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'AP
   
   =head1 VERSION
   
-  0.03
+  0.04
   
   =head1 DESCRIPTION
   
@@ -98,7 +98,7 @@ $fatpacked{"App/sslmaker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'AP
   use constant DEFAULT_BITS => 4096;
   use constant DEFAULT_DAYS => 365;
   
-  our $VERSION = '0.03';
+  our $VERSION = '0.04';
   our $OPENSSL = $ENV{SSLMAKER_OPENSSL} || 'openssl';
   
   my @CONFIG_TEMPLATE_KEYS = qw( bits cert crl_days days home key );
@@ -622,6 +622,7 @@ $fatpacked{"App/sslmaker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'AP
     ssl_client_certificate <%= $stash->{ca_cert} %>;
     ssl_crl <%= $stash->{crl} || 'TODO' %>;
     ssl_verify_client <%= $stash->{verify_client} || 'optional' %>;
+    ssl_verify_depth 2;
   
     location / {
       proxy_pass http://127.0.0.1:8080;
