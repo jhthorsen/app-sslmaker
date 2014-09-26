@@ -384,10 +384,9 @@ $fatpacked{"App/sslmaker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'AP
   sub render_to_file {
     my $stash = pop;
     my ($self, $name, $path) = @_;
-    my $template = $DATA{$name} // confess "No such template: $name";
+    my $template = $self->_render_template($name, $stash);
     my $asset;
   
-    $template =~ s!<%=\s*([^%]+)\s*%>!{eval $1 // confess $@}!ges; # super cheap template parser
     $asset = $path ? Path::Tiny->new($path) : Path::Tiny->tempfile;
     $asset->spew({binmode => ":raw"}, $template);
     $asset;
@@ -541,6 +540,14 @@ $fatpacked{"App/sslmaker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'AP
     }
   
     return join '/', '', map { "$_=$subject{$_}" } grep { defined $subject{$_} } qw( C ST L O OU CN emailAddress );
+  }
+  
+  # used in script/sslmaker
+  sub _render_template {
+    my ($self, $name, $stash) = @_;
+    my $template = $DATA{$name} // confess "No such template: $name";
+    $template =~ s!<%=\s*([^%]+)\s*%>!{eval $1 // confess $@}!ges; # super cheap template parser
+    $template;
   }
   
   =head1 TEMPLATES
@@ -3234,7 +3241,7 @@ sub action_nginx {
         domain => $domain,
         key => "/etc/nginx/ssl/$domain.key.pem",
         cert => "/etc/nginx/ssl/$domain.cert.pem",
-        ca_cert => $home->child('certs/intermediate.cert.pem'),
+        ca_cert => $home->child('certs/ca-chain.cert.pem'),
       },
     )
   );

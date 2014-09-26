@@ -1,6 +1,6 @@
 Changelog for App::sslmaker
 
-0.04
+0.04     Fri Sep 26 14:36:41 2014
        * Fix "nginx" action
 
 0.03     Thu Sep 18 23:42:19 2014
