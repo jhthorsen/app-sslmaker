@@ -14,7 +14,7 @@ $fatpacked{"App/sslmaker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'AP
   
   =head1 VERSION
   
-  0.02
+  0.03
   
   =head1 DESCRIPTION
   
@@ -74,19 +74,16 @@ $fatpacked{"App/sslmaker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'AP
   
   =head1 SYNOPSIS
   
-    my $sslmaker = App::sslmaker->new;
-  
-    my $asset = $sslmaker->make_csr({
-                  key => "/path/to/private/input.key.pem",
-                  passphrase => "/path/to/passphrase.txt",
-                  subject => '/C=NO/ST=Oslo',
-                });
+    my $sslmaker = App::sslmaker->new(subject => '/C=US/ST=Gotham/L=Gotham/O=Wayne Enterprises/OU=Batcave/CN=batman');
+    my $key = $sslmaker->make_key;
+    my $csr = $sslmaker->make_csr({ key => $key->path });
   
     # the content of the csr
-    print $asset->slurp;
+    print $csr->slurp;
   
     # move to a non-temp location
-    $asset->move("/path/to/certs/output.csr.pem");
+    $csr->move("/path/to/certs/output.csr.pem");
+    $key->move("/path/to/certs/output.csr.pem");
   
   All methods will throw an exception on error, unless otherwise noted.
   
@@ -101,7 +98,7 @@ $fatpacked{"App/sslmaker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'AP
   use constant DEFAULT_BITS => 4096;
   use constant DEFAULT_DAYS => 365;
   
-  our $VERSION = '0.02';
+  our $VERSION = '0.03';
   our $OPENSSL = $ENV{SSLMAKER_OPENSSL} || 'openssl';
   
   my @CONFIG_TEMPLATE_KEYS = qw( bits cert crl_days days home key );
@@ -148,7 +145,7 @@ $fatpacked{"App/sslmaker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'AP
     $self = $self->subject('/C=NO/ST=Oslo/L=Oslo/O=Example/OU=Prime/emailAddress=admin@example.com');
     $str = $self->subject;
   
-  Holds the default subject field for the certificates.
+  Holds the default subject field for the certificate.
   
   =cut
   
