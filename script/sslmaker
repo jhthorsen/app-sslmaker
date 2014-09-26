@@ -154,7 +154,7 @@ sub action_nginx {
         domain => $domain,
         key => "/etc/nginx/ssl/$domain.key.pem",
         cert => "/etc/nginx/ssl/$domain.cert.pem",
-        ca_cert => $home->child('certs/intermediate.cert.pem'),
+        ca_cert => $home->child('certs/ca-chain.cert.pem'),
       },
     )
   );
