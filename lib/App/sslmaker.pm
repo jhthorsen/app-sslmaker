@@ -79,6 +79,18 @@ library.
 
 All methods will throw an exception on error, unless otherwise noted.
 
+=head2 RESOURCES
+
+=over 4
+
+=item * L<https://jamielinux.com/blog/category/CA>
+
+=item * L<https://www.digitalocean.com/community/tutorials/openssl-essentials-working-with-ssl-certificates-private-keys-and-csrs>
+
+=item * L<http://en.wikipedia.org/wiki/Certificate_authority>
+
+=back
+
 =cut
 
 use strict;
