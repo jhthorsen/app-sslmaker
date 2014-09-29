@@ -2,7 +2,7 @@ NAME
     App::sslmaker - Be your own SSL certificate authority
 
 VERSION
-    0.04
+    0.05
 
 DESCRIPTION
     App::sslmaker is a module that provide methods for acting as your own CA
@@ -72,6 +72,14 @@ SYNOPSIS
       $key->move("/path/to/certs/output.csr.pem");
 
     All methods will throw an exception on error, unless otherwise noted.
+
+  RESOURCES
+    *   <https://jamielinux.com/blog/category/CA>
+
+    *   <https://www.digitalocean.com/community/tutorials/openssl-essentials
+        -working-with-ssl-certificates-private-keys-and-csrs>
+
+    *   <http://en.wikipedia.org/wiki/Certificate_authority>
 
 ATTRIBUTES
   subject
