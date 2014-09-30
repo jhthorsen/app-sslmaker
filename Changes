@@ -1,6 +1,6 @@
 Changelog for App::sslmaker
 
-0.06
+0.06     Tue Sep 30 22:24:17 2014
        * Cannot build on Win32
 
 0.05     Mon Sep 29 08:17:01 2014

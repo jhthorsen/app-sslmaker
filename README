@@ -2,7 +2,7 @@ NAME
     App::sslmaker - Be your own SSL certificate authority
 
 VERSION
-    0.05
+    0.06
 
 DESCRIPTION
     App::sslmaker is a module that provide methods for acting as your own CA
