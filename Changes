@@ -1,5 +1,16 @@
 Changelog for App::sslmaker
 
+0.07     Tue Sep 30 22:33:36 2014
+         Status: Database error
+         ======================
+         module : App::sslmaker
+         version: undef
+         in file: App-sslmaker-0.06/lib/App/sslmaker.pm
+         status : The PAUSE indexer could not store the indexing result in
+                  the DB due the following error: C< Lock wait timeout
+                  exceeded; try restarting transaction >. Please report the
+                  case to the PAUSE admins at modules@perl.org.
+
 0.06     Tue Sep 30 22:24:17 2014
        * Cannot build on Win32
 

@@ -6,7 +6,7 @@ App::sslmaker - Be your own SSL certificate authority
 
 =head1 VERSION
 
-0.06
+0.07
 
 =head1 DESCRIPTION
 
@@ -102,7 +102,7 @@ use constant DEBUG => $ENV{SSLMAKER_DEBUG} ? 1 : 0;
 use constant DEFAULT_BITS => 4096;
 use constant DEFAULT_DAYS => 365;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 our $OPENSSL = $ENV{SSLMAKER_OPENSSL} || 'openssl';
 
 my @CONFIG_TEMPLATE_KEYS = qw( bits cert crl_days days home key );
