@@ -4,7 +4,7 @@ use App::sslmaker;
 
 # https://jamielinux.com/articles/2013/08/create-an-intermediate-certificate-authority/
 
-plan skip_all => 'Cannot build on Win32' unless $^O =~ /win/i;
+plan skip_all => 'Cannot build on Win32' if $^O =~ /win/i;
 plan skip_all => 'openssl is required' if system 'openssl -h 2>/dev/null';
 
 my $asset;

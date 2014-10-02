@@ -14,7 +14,7 @@ $fatpacked{"App/sslmaker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'AP
   
   =head1 VERSION
   
-  0.06
+  0.07
   
   =head1 DESCRIPTION
   
@@ -110,7 +110,7 @@ $fatpacked{"App/sslmaker.pm"} = '#line '.(1+__LINE__).' "'.__FILE__."\"\n".<<'AP
   use constant DEFAULT_BITS => 4096;
   use constant DEFAULT_DAYS => 365;
   
-  our $VERSION = '0.06';
+  our $VERSION = '0.07';
   our $OPENSSL = $ENV{SSLMAKER_OPENSSL} || 'openssl';
   
   my @CONFIG_TEMPLATE_KEYS = qw( bits cert crl_days days home key );

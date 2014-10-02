@@ -17,7 +17,7 @@ openssl x509 -noout -text -in local/tmp/real/server.cert.pem | grep 'Issuer\|Sub
 
 =cut
 
-plan skip_all => 'Cannot build on Win32' unless $^O =~ /win/i;
+plan skip_all => 'Cannot build on Win32' if $^O =~ /win/i;
 plan skip_all => 'IO::Socket::IP 0.20 required' unless eval 'use IO::Socket::IP 0.20; 1';
 plan skip_all => 'IO::Socket::SSL 1.84 required' unless eval 'use IO::Socket::SSL 1.84; 1';
 

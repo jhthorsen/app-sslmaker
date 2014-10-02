@@ -1,5 +1,8 @@
 Changelog for App::sslmaker
 
+0.08     Thu Oct  2 13:26:28 2014
+       * Cannot build on Win32 (the logic was reverse)
+
 0.07     Tue Sep 30 22:33:36 2014
          Status: Database error
          ======================
