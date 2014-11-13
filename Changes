@@ -1,6 +1,6 @@
 Changelog for App::sslmaker
 
-0.09
+0.09     Thu Nov 13 17:52:50 2014
        * Skip tests on Win32
 
 0.08     Thu Oct  2 13:26:28 2014
