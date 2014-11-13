@@ -1,5 +1,8 @@
 Changelog for App::sslmaker
 
+0.09
+       * Skip tests on Win32
+
 0.08     Thu Oct  2 13:26:28 2014
        * Cannot build on Win32 (the logic was reverse)
 
