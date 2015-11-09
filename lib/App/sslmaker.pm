@@ -687,24 +687,24 @@ string_mask = utf8only
 [ req_attributes ]
 
 [ usr_cert ]
-basicConstraints=CA:FALSE
+basicConstraints = CA:FALSE
 keyUsage = nonRepudiation, digitalSignature, keyEncipherment
 nsComment = "OpenSSL Generated Certificate"
-subjectKeyIdentifier=hash
-authorityKeyIdentifier=keyid,issuer
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer
 
 [ v3_ca ]
-subjectKeyIdentifier=hash
-authorityKeyIdentifier=keyid:always,issuer
-basicConstraints = CA:true
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical,CA:true
 keyUsage = cRLSign, keyCertSign
 
 [ crl_ext ]
 authorityKeyIdentifier=keyid:always
 
 [ proxy_cert_ext ]
-basicConstraints=CA:FALSE
+basicConstraints = CA:FALSE
 nsComment = "OpenSSL Generated Certificate"
-subjectKeyIdentifier=hash
-authorityKeyIdentifier=keyid,issuer
-proxyCertInfo=critical,language:id-ppl-anyLanguage,pathlen:3,policy:foo
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer
+proxyCertInfo = critical,language:id-ppl-anyLanguage,pathlen:3,policy:foo
