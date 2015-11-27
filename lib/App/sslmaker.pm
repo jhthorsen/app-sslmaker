@@ -118,7 +118,7 @@ my %DATA = do {
   @$data;
 };
 
-# "private" for now
+# need to be defined up front
 sub openssl {
   my $cb = ref $_[-1] eq 'CODE' ? pop : sub { warn $_[1] if length $_[1] and DEBUG == 2 };
   my $self = ref $_[0] ? shift : __PACKAGE__;
@@ -372,6 +372,20 @@ sub new {
   my $class = shift;
   bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, ref $class || $class;
 }
+
+=head2 openssl
+
+  $self->openssl(@args);
+  $self->openssl(@args, sub { ... });
+  App::sslmaker::openssl(@args);
+  App::sslmaker::openssl(@args, sub { ... });
+
+Used to run the application C<openssl>. The callback defined at the end is
+optional, but will be called with the complete output from the openssl
+command. C<$?> is also available for inspection.
+
+The C<openssl> application must exist in path or defined by setting the
+C<SSLMAKER_OPENSSL> environment variable before loading this module.
 
 =head2 render_to_file
 
@@ -661,7 +675,7 @@ name_opt = ca_default
 cert_opt = ca_default
 default_days = <%= $stash->{days} || DEFAULT_DAYS %>
 default_crl_days = <%= $stash->{crl_days} || 30 %>
-default_md = default
+default_md = sha256
 preserve = no
 policy = policy_anything
 

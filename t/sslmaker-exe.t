@@ -4,7 +4,7 @@ use Test::More;
 
 $ENV{SSLMAKER_SUBJECT} = '/C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=superduper';
 
-plan skip_all => 'linux is required' unless $^O eq 'linux';
+plan skip_all => 'linux is required' unless $^O =~ /linux|darwin/;
 plan skip_all => 'openssl is required' if system 'openssl -h 2>/dev/null';
 
 my @unlink = map { my $i = $_; map { "client$i.example.com.$_.pem" } qw( cert csr key ) } 1..2;

@@ -2,7 +2,7 @@ use strict;
 use Test::More;
 use App::sslmaker;
 
-plan skip_all => 'TEST_SYNOPSIS=1' unless $ENV{TEST_SYNOPSIS};
+plan skip_all => 'Cannot build on Win32' if $^O eq 'MSWin32';
 
 my $sslmaker = App::sslmaker->new(subject => '/C=US/ST=Gotham/L=Gotham/O=Wayne Enterprises/OU=Batcave/CN=batman');
 my $key = $sslmaker->make_key;
