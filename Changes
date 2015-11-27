@@ -1,43 +1,42 @@
-Changelog for App::sslmaker
+Revision history for perl distribution App-sslmaker
 
-0.09     Thu Nov 13 17:52:50 2014
-       * Skip tests on Win32
+0.09 2014-11-13T17:52:50Z
+ - Skip tests on Win32
 
-0.08     Thu Oct  2 13:26:28 2014
-       * Cannot build on Win32 (the logic was reverse)
+0.08 2014-10-02T13:26:28Z
+ - Cannot build on Win32 (the logic was reverse)
 
-0.07     Tue Sep 30 22:33:36 2014
-         Status: Database error
-         ======================
-         module : App::sslmaker
-         version: undef
-         in file: App-sslmaker-0.06/lib/App/sslmaker.pm
-         status : The PAUSE indexer could not store the indexing result in
-                  the DB due the following error: C< Lock wait timeout
-                  exceeded; try restarting transaction >. Please report the
-                  case to the PAUSE admins at modules@perl.org.
+0.07 2014-09-30T22:33:36Z
+ - Status: Database error
+ - ======================
+ - module : App::sslmaker
+ - version: undef
+ - in file: App-sslmaker-0.06/lib/App/sslmaker.pm
+ - status : The PAUSE indexer could not store the indexing result in the DB
+   due the following error: C< Lock wait timeout exceeded; try restarting
+   transaction >. Please report the case to the PAUSE admins at
+   modules@perl.org.
 
-0.06     Tue Sep 30 22:24:17 2014
-       * Cannot build on Win32
+0.06 2014-09-30T22:24:17Z
+ - Cannot build on Win32
 
-0.05     Mon Sep 29 08:17:01 2014
-       * Add RESOURCES
+0.05 2014-09-29T08:17:01Z
+ - Add RESOURCES
 
-0.04     Fri Sep 26 14:36:41 2014
-       * Fix "nginx" action
+0.04 2014-09-26T14:36:41Z
+ - Fix "nginx" action
 
-0.03     Thu Sep 18 23:42:19 2014
-       * Add "revoke" action to sslmaker
-       * Change default intermediate key/cert filenames
+0.03 2014-09-18T23:42:19Z
+ - Add "revoke" action to sslmaker
+ - Change default intermediate key/cert filenames
 
-0.02     Thu Sep 18 07:55:27 2014
-       * Change default days for root and intermediate
-       * Able to generate certificate revocation list
-       * Add test for setting up a real server/client
+0.02 2014-09-18T07:55:27Z
+ - Change default days for root and intermediate
+ - Able to generate certificate revocation list
+ - Add test for setting up a real server/client
 
-0.01     Mon Sep 15 09:35:42 2014
-       * Add bin/sslmaker
-       * Can make key, cert and csr
-       * Can make directory strucures
-       * Can run openssl with temp config file
-
+0.01 2014-09-15T09:35:42Z
+ - Add bin/sslmaker
+ - Can make key, cert and csr
+ - Can make directory strucures
+ - Can run openssl with temp config file
