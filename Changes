@@ -2,6 +2,8 @@ Revision history for perl distribution App-sslmaker
 
 0.10 Not Released
  - Change default "unique_subject" to "no"
+ - Change default "default_md" to "sha256"
+ - Change "basicConstraints" to "critical,CA:true"
 
 0.09 2014-11-13T17:52:50Z
  - Skip tests on Win32
