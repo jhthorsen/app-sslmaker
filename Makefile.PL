@@ -19,6 +19,7 @@ WriteMakefile(
 }
 ,
   PREREQ_PM => {
+  'Applify' => '0.12',
   'File::umask' => '0.01',
   'Path::Tiny' => '0.05'
 }

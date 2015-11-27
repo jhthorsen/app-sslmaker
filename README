@@ -2,7 +2,7 @@ NAME
     App::sslmaker - Be your own SSL certificate authority
 
 VERSION
-    0.09
+    0.10
 
 DESCRIPTION
     App::sslmaker is a module that provide methods for acting as your own CA
@@ -194,6 +194,19 @@ METHODS
       $self = App::sslmaker->new(\%args);
 
     Object constructor.
+
+  openssl
+      $self->openssl(@args);
+      $self->openssl(@args, sub { ... });
+      App::sslmaker::openssl(@args);
+      App::sslmaker::openssl(@args, sub { ... });
+
+    Used to run the application "openssl". The callback defined at the end
+    is optional, but will be called with the complete output from the
+    openssl command. $? is also available for inspection.
+
+    The "openssl" application must exist in path or defined by setting the
+    "SSLMAKER_OPENSSL" environment variable before loading this module.
 
   render_to_file
       $asset = $self->render_to_file($template, \%stash);
