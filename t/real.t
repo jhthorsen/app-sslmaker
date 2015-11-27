@@ -39,10 +39,14 @@ my $pid = fork // plan skip_all => "Could not fork: $!";
 exit run_echo_server() if $pid == 0;
 
 # run tests in parent process
-my $client = connect_to_echo_server();
-ok $client, 'connected to server';
-print $client "CAN HAZ SSL?\n";
-is(readline($client), "You (/C=NO/ST=Oslo/L=Oslo/O=Example/OU=Prime/CN=client.example.com/emailAddress=admin\@example.com) sent: CAN HAZ SSL?\n", 'got echo data');
+eval {
+  my $client = connect_to_echo_server();
+  ok $client, 'connected to server';
+  print $client "CAN HAZ SSL?\n";
+  is(readline($client), "You (/C=NO/ST=Oslo/L=Oslo/O=Example/OU=Prime/CN=client.example.com/emailAddress=admin\@example.com) sent: CAN HAZ SSL?\n", 'got echo data');
+};
+
+plan skip_all => $@ if $@;
 
 # end server
 kill 9, $pid;

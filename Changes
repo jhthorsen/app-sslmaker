@@ -4,6 +4,7 @@ Revision history for perl distribution App-sslmaker
  - Change default "unique_subject" to "no"
  - Change default "default_md" to "sha256"
  - Change "basicConstraints" to "critical,CA:true"
+ - Fix missing dependendency: Applify
 
 0.09 2014-11-13T17:52:50Z
  - Skip tests on Win32
