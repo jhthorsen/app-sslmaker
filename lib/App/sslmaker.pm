@@ -641,6 +641,7 @@ RANDFILE = $ENV::HOME/.rnd
 
 [ ca ]
 default_ca = CA_default
+unique_subject = <%= $stash->{unique_subject} || "no" %>
 
 [ CA_default ]
 dir = <%= Path::Tiny->new($stash->{home})->absolute->stringify %>
