@@ -1,5 +1,8 @@
 Revision history for perl distribution App-sslmaker
 
+0.11 2016-01-03T00:18:53+0100
+ - Skip t/synopsis.t on freebsd
+
 0.10 2015-11-27T11:09:08+0100
  - Change default "unique_subject" to "no"
  - Change default "default_md" to "sha256"
