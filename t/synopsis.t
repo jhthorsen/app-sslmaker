@@ -3,7 +3,7 @@ use Test::More;
 use App::sslmaker;
 
 plan skip_all => 'Not supported on Win32' if $^O eq 'MSWin32';
-plan skip_all => 'Not supported on freebsd' if $^O eq 'freebsd';
+plan skip_all => 'Need /etc/openssl/openssl.cnf' if $^O =~ /bsd/i and !-r '/etc/openssl/openssl.cnf';
 
 my $sslmaker = App::sslmaker->new(subject => '/C=US/ST=Gotham/L=Gotham/O=Wayne Enterprises/OU=Batcave/CN=batman');
 my $key = $sslmaker->make_key;
