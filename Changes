@@ -1,6 +1,6 @@
 Revision history for perl distribution App-sslmaker
 
-0.12 Not Released
+0.12 2016-01-13T09:25:33+0100
  - Skip tests on *BSD without /etc/openssl/openssl.cnf
    http://cpantesters.org/cpan/report/4abd1602-b65b-11e5-9bab-7eb28fb2e322
 
