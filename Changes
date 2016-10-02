@@ -1,6 +1,6 @@
 Revision history for perl distribution App-sslmaker
 
-0.13 Not Released
+0.13 2016-10-02T17:00:21+0200
  - Prevent test suite from leaving files on disk #1
 
 0.12 2016-01-13T09:25:33+0100

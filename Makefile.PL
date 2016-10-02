@@ -24,5 +24,5 @@ WriteMakefile(
   'Path::Tiny' => '0.05'
 }
 ,
-  test => { TESTS => 't/*.t' },
+  test => {TESTS => (-e 'META.yml' ? 't/*.t' : 't/*.t xt/*.t')},
 );
