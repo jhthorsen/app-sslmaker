@@ -52,6 +52,7 @@ plan skip_all => $@ if $@;
 kill 9, $pid;
 is wait, $pid, 'waited for child process';
 
+$home->remove_tree({ safe => 0 }); # remove old files
 done_testing;
 #==============================================================================
 

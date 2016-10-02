@@ -37,6 +37,7 @@ my $sslmaker = App::sslmaker->new;
   like $asset->slurp, qr{^1000\s*$}s, 'serial template';
   undef $asset;
   ok -e $path, 'serial is not a temp file';
+  unlink 'local/utils-test-serial';
 }
 
 {

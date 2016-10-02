@@ -47,4 +47,5 @@ $home->remove_tree({ safe => 0 });
   is +(stat $asset)[2] & 0777, 0444, 'cert mode 444';
 }
 
+$home->remove_tree({ safe => 0 });
 done_testing;

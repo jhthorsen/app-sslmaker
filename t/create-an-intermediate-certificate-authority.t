@@ -40,11 +40,9 @@ $intermediate_home->remove_tree({ safe => 0 }) if -d $intermediate_home;
   my $sslmaker = App::sslmaker->new;
   my $intermediate_args = {
     home => $intermediate_home,
-
     key => $intermediate_home->child('private/intermediate.key.pem'),
     bits => 1024, # really bad bits
     passphrase => $intermediate_home->child('private/passphrase'),
-
     csr => $intermediate_home->child('certs/intermediate.csr.pem'),
     days => 20,
     subject => '/CN=test.example.com',
@@ -80,5 +78,8 @@ $intermediate_home->remove_tree({ safe => 0 }) if -d $intermediate_home;
   like $ca_home->child('index.txt')->slurp, qr{CN=test\.example\.com}, 'cert was added to index.txt';
   like $ca_home->child('serial')->slurp, qr{^1001$}m, 'serial was modified';
 }
+
+$ca_home->remove_tree({ safe => 0 });
+$intermediate_home->parent->remove_tree({ safe => 0 });
 
 done_testing;

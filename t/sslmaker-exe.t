@@ -80,4 +80,5 @@ unlink @unlink;
 
 unlink @unlink;
 
+$root->remove_tree({safe => 0});
 done_testing;
