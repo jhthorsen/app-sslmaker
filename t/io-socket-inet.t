@@ -17,7 +17,7 @@ openssl x509 -noout -text -in local/tmp/real/server.cert.pem | grep 'Issuer\|Sub
 
 =cut
 
-plan skip_all => 'Cannot build on Win32' if $^O eq 'MSWin32';
+plan skip_all => "$^O is not supported" if $^O eq 'MSWin32';
 plan skip_all => 'IO::Socket::IP 0.20 required' unless eval 'use IO::Socket::IP 0.20; 1';
 plan skip_all => 'IO::Socket::SSL 1.84 required' unless eval 'use IO::Socket::SSL 1.84; 1';
 
@@ -27,7 +27,7 @@ $home->remove_tree({safe => 0});    # remove old files
 # create ssl certificates
 create_root_ca();
 create_intermediate_ca();
-create_cert($_) for qw( server client );
+create_cert($_) for qw(server client);
 
 $IO::Socket::SSL::DEBUG = $ENV{SSL_DEBUG} || 0;
 
@@ -149,12 +149,12 @@ sub run_echo_server {
     or die "[SERVER] Failed to listen: $! ($IO::Socket::SSL::SSL_ERROR)";
 
   while (1) {
-    diag "Waiting for client to connect";
+    note "Waiting for client to connect";
     my $client = $s->accept
       or die "[SERVER] Failed to accept or ssl handshake: $! ($IO::Socket::SSL::SSL_ERROR)";
     my $buf     = $client->readline;
     my $subject = $client->peer_certificate('subject');
-    diag $subject;
+    note $subject;
     $client->print("You ($subject) sent: $buf");
   }
 }
@@ -171,7 +171,7 @@ sub connect_to_echo_server {
   );
 
   while ($guard--) {
-    diag "Trying to connect to server ($pid)";
+    note "Trying to connect to server ($pid)";
     usleep 300e3;
     my $client = IO::Socket::SSL->new(%args) or next;
     return $client;

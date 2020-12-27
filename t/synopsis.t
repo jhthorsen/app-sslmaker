@@ -2,7 +2,7 @@ use strict;
 use Test::More;
 use App::sslmaker;
 
-plan skip_all => 'Not supported on Win32' if $^O eq 'MSWin32';
+plan skip_all => "$^O is not supported" if $^O eq 'MSWin32';
 plan skip_all => 'Need /etc/openssl/openssl.cnf'
   if $^O =~ /bsd/i and !-r '/etc/openssl/openssl.cnf';
 

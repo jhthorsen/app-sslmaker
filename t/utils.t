@@ -2,8 +2,8 @@ use strict;
 use Test::More;
 use App::sslmaker;
 
-plan skip_all => 'Cannot build on Win32' if $^O eq 'MSWin32';
-plan skip_all => 'openssl is required'   if system 'openssl -h 2>/dev/null';
+plan skip_all => "$^O is not supported" if $^O eq 'MSWin32';
+plan skip_all => 'openssl is required'  if system 'openssl version >/dev/null';
 mkdir 'local';
 
 my $sslmaker = App::sslmaker->new;
@@ -20,7 +20,7 @@ my $sslmaker = App::sslmaker->new;
     'merged ssl subject',
   );
 
-  is eval { $sslmaker->openssl(qw( genrsa -invalid )); 'ok' }, undef, 'genrsa -invalid 42';
+  is eval { $sslmaker->openssl(qw(genrsa -invalid)); 'ok' }, undef, 'genrsa -invalid 42';
   like $@, qr{^openssl genrsa -invalid FAIL \(\d+\) .}, 'openssl died';
 }
 

@@ -2,10 +2,8 @@ use strict;
 use Test::More;
 use App::sslmaker;
 
-# https://jamielinux.com/articles/2013/08/create-an-intermediate-certificate-authority/
-
-plan skip_all => 'Cannot build on Win32' if $^O eq 'MSWin32';
-plan skip_all => 'openssl is required'   if system 'openssl -h 2>/dev/null';
+plan skip_all => "$^O is not supported" if $^O eq 'MSWin32';
+plan skip_all => 'openssl is required'  if system 'openssl version >/dev/null';
 
 my $asset;
 my $intermediate_home = Path::Tiny->new('local/tmp/step-2-intermediate/intermediate');
@@ -24,18 +22,16 @@ my $ca_args           = {
 $ca_home->remove_tree({safe => 0})           if -d $ca_home;
 $intermediate_home->remove_tree({safe => 0}) if -d $intermediate_home;
 
-{
-  diag 'tested in t/act-as-your-own-certificate-authority.t';
+subtest 'tested in t/act-as-your-own-certificate-authority.t' => sub {
   my $sslmaker = App::sslmaker->new;
   $sslmaker->make_directories({home => $ca_home, templates => 1});
   $sslmaker->with_config(make_key => $ca_args);
   ok -e $ca_args->{key}, 'ca key created';
   $sslmaker->with_config(make_cert => $ca_args);
   ok -e $ca_args->{cert}, 'ca cert created';
-}
+};
 
-{
-  diag 'make intermediate';
+subtest 'make intermediate' => sub {
   my $cert;
   my $sslmaker          = App::sslmaker->new;
   my $intermediate_args = {
@@ -80,7 +76,7 @@ $intermediate_home->remove_tree({safe => 0}) if -d $intermediate_home;
   like $ca_home->child('index.txt')->slurp, qr{CN=test\.example\.com},
     'cert was added to index.txt';
   like $ca_home->child('serial')->slurp, qr{^1001$}m, 'serial was modified';
-}
+};
 
 $ca_home->remove_tree({safe => 0});
 $intermediate_home->parent->remove_tree({safe => 0});
