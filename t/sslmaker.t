@@ -2,8 +2,6 @@ use strict;
 use Path::Tiny 'path';
 use Test::More;
 
-$ENV{SSLMAKER_SUBJECT} = '/C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=superduper';
-
 plan skip_all => "$^O is not supported" if $^O eq 'MSWin32';
 plan skip_all => 'openssl is required'  if system 'openssl version >/dev/null';
 
@@ -11,7 +9,7 @@ my @unlink = map {
   my $i = $_;
   map {"client$i.example.com.$_.pem"} qw(cert csr key)
 } 1 .. 2;
-my $root = path('local/tmp/sslmaker-exe');
+my $home = path('local/tmp/sslmaker');
 my $script;
 
 unlink @unlink;
@@ -21,52 +19,58 @@ subtest 'silent' => sub {
   $script = do './script/sslmaker' or plan skip_all => $@;
   $script->bits(1024);    # speed up testing
   $script->silent(1);
-  $root->remove_tree({safe => 0});
-  $root->mkpath;
-  ok !-d $root->child('CA'), 'nothing exists';
+  $home->remove_tree({safe => 0});
+  $home->mkpath;
+  ok !-d $home->child('root'), 'nothing exists';
 };
 
 subtest 'sslmaker root' => sub {
-  $script->home($root->child('CA'));
+  $script->home($home);
+  $script->subject('/C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=superduper');
   $script->run('root');
-  ok -e $root->child('CA/certs/ca.cert.pem'),  'CA/certs/ca.cert.pem';
-  ok -e $root->child('CA/index.txt'),          'CA/index.txt';
-  ok -e $root->child('CA/private/ca.key.pem'), 'CA/private/ca.key.pem';
-  ok -e $root->child('CA/private/passphrase'), 'CA/private/passphrase';
-  ok -e $root->child('CA/serial'),             'CA/serial';
+  ok -e $home->child('root/ca.cert.pem'), 'root/ca.cert.pem';
+  ok -e $home->child('root/index.txt'),   'index.txt';
+  ok -e $home->child('root/ca.key.pem'),  'root/ca.key.pem';
+  ok -e $home->child('root/passphrase'),  'root/passphrase';
+  ok -e $home->child('root/serial'),      'root/serial';
 };
 
 subtest 'sslmaker intermediate' => sub {
-  $script->root_home($root->child('CA'));
-  $script->home($root->child('intermediate'));
+  $script->subject('');    # read subject from root CA
   $script->run('intermediate');
-  ok -e $root->child('intermediate/certs/ca.cert.pem'), 'intermediate/certs/ca.cert.pem';
-  ok -e $root->child('intermediate/certs/ca.csr.pem'),  'intermediate/certs/ca.csr.pem';
-  ok -e $root->child('intermediate/certs/ca-chain.cert.pem'),
-    'intermediate/certs/ca-chain.cert.pem';
-  ok -e $root->child('intermediate/index.txt'),          'intermediate/index.txt';
-  ok -e $root->child('intermediate/private/ca.key.pem'), 'intermediate/private/ca.key.pem';
-  ok -e $root->child('intermediate/private/passphrase'), 'intermediate/private/passphrase';
-  ok -e $root->child('intermediate/serial'),             'intermediate/serial';
+
+  ok -e $home->child('root/ca.cert.pem'), 'root/ca.cert.pem';
+  ok -e $home->child('root/index.txt'),   'root/index.txt';
+  ok -e $home->child('root/ca.key.pem'),  'root/ca.key.pem';
+  ok -e $home->child('root/passphrase'),  'root/passphrase';
+  ok -e $home->child('root/serial'),      'root/serial';
+
+
+  ok -e $home->child('certs/ca.cert.pem'),       'certs/ca.cert.pem';
+  ok -e $home->child('certs/ca.csr.pem'),        'certs/ca.csr.pem';
+  ok -e $home->child('certs/ca-chain.cert.pem'), 'certs/ca-chain.cert.pem';
+  ok -e $home->child('index.txt'),               'index.txt';
+  ok -e $home->child('private/ca.key.pem'),      'private/ca.key.pem';
+  ok -e $home->child('private/passphrase'),      'private/passphrase';
+  ok -e $home->child('serial'),                  'serial';
 };
 
 subtest 'sslmaker generate example.com' => sub {
-  $script->root_home('');
   $script->run(qw(generate client1.example.com));
   $script->run(qw(generate client2.example.com));
   ok -e 'client1.example.com.key.pem', 'client1.example.com.key.pem';
   ok -e 'client1.example.com.csr.pem', 'client1.example.com.csr.pem';
   ok !-e 'client1.example.com.cert.pem',
-    'client1.example.com.cert.pem need to be created by intermediate';
+    'client1.example.com.cert.pem need to be created from intermediate';
 };
 
 subtest 'sslmaker sign example.com.csr.pem' => sub {
-  $script->root_home('');
   $script->run(qw(sign client1.example.com.csr.pem));
   $script->run(qw(sign client2.example.com.csr.pem));
-  ok -e 'client2.example.com.cert.pem', 'client2.example.com.cert.pem was created by intermediate';
+  ok -e 'client2.example.com.cert.pem',
+    'client2.example.com.cert.pem was created from intermediate';
 
-  my $index = $root->child('intermediate/index.txt')->slurp;
+  my $index = $home->child('index.txt')->slurp;
   like $index, qr{^V.*CN=client1\.example\.com$}m, 'index.txt has V client1.example.com';
   like $index, qr{^V.*CN=client2\.example\.com$}m, 'index.txt has V client2.example.com';
 };
@@ -75,12 +79,11 @@ subtest 'sslmaker revoke example.com' => sub {
   $script->run(qw(revoke client2.example.com.cert.pem));
   $script->run(qw(revoke client1.example.com.cert.pem));
 
-  my $index = $root->child('intermediate/index.txt')->slurp;
+  my $index = $home->child('index.txt')->slurp;
   like $index, qr{^R.*CN=client1\.example\.com$}m, 'index.txt has R client1.example.com';
   like $index, qr{^R.*CN=client2\.example\.com$}m, 'index.txt has R client2.example.com';
 };
 
-unlink @unlink;
-
-$root->remove_tree({safe => 0});
+#unlink @unlink;
+#$home->remove_tree({safe => 0});
 done_testing;

@@ -1,5 +1,19 @@
 Revision history for perl distribution App-sslmaker
 
+0.14 Not Released
+ - Made sslmaker easier to run
+ - Add support for setting subject() from a certificate file
+ - Add support for more environment variables
+   * SSLMAKER_BITS
+   * SSLMAKER_DAYS
+ - Will read default --subject values from root and intermediate CA
+ - Removed default subject value
+ - Replaced "--root-home CA/" with "--root key.pem"
+ - Changed "--home" to either "/etc/pki/sslmaker" or "/etc/ssl/sslmaker" as default
+ - Changed sslmaker directory structure
+ - Changed subject() to be a method that can merge many subjects in different
+   formats
+
 0.13 2016-10-02T17:00:21+0200
  - Prevent test suite from leaving files on disk #1
 

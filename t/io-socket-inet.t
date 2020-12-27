@@ -4,6 +4,9 @@ use Time::HiRes 'usleep';
 use Test::More;
 use App::sslmaker;
 
+$ENV{SSLMAKER_SUBJECT}
+  = '/C=NO/ST=Oslo/L=Oslo/O=Example/OU=Prime/CN=example.com/emailAddress=admin@example.com';
+
 =commands
 
 These commands can come in handy if something fail:

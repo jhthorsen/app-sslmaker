@@ -6,7 +6,7 @@ use App::sslmaker;
 plan skip_all => "$^O is not supported" if $^O eq 'MSWin32';
 plan skip_all => 'openssl is required'  if system 'openssl version >/dev/null';
 
-my $sslmaker = App::sslmaker->new;
+my $sslmaker = App::sslmaker->new->subject({CN => 'example.com'});
 my $home     = Path::Tiny->new('local/tmp/step-1-ca');
 my $asset;
 

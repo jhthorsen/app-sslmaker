@@ -4,15 +4,16 @@ BEGIN {
 }
 use Applify;
 use Data::Dumper ();
+use File::Spec::Functions qw(catdir);
 use if do { @ARGV != 1 or $ARGV[0] ne 'pack' }, 'App::sslmaker';
 
-option int => bits      => 'SSL key bit size';
-option int => days      => 'Number of days the cert should be valid';
-option str => home      => 'Location of intermediate SSL files';
-option str => root_home => 'Location of root SSL files';
-option str => subject   =>
+option int => bits => 'SSL key bit size';
+option int => days => 'Number of days the cert should be valid';
+option str => home => 'sslmaker working directory';
+option str => root => 'Path to root key.pem. Required for making intermediate key+cert';
+option str => subject =>
   'Example: /C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=example.com/emailAddress=admin@example.com',
-  $ENV{SSLMAKER_SUBJECT} || '';
+  $ENV{SSLMAKER_SUBJECT};
 option bool => silent => 'Only output data on failure';
 
 documentation __FILE__;
@@ -33,14 +34,13 @@ sub d {
 
 sub action_revoke {
   my ($self, $cert) = @_;
-  my $sslmaker = App::sslmaker->new;
-  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
-  my $passphrase = $home->child('private/passphrase');
+  my $sslmaker   = App::sslmaker->new;
+  my $passphrase = $self->home->child(qw(private passphrase));
 
   $sslmaker->$wrapper(
     revoke_cert => {
-      cert       => $home->child('certs/ca.cert.pem'),
-      key        => $home->child('private/ca.key.pem'),
+      cert       => $self->home->child(qw(certs ca.cert.pem)),
+      key        => $self->home->child(qw(private ca.key.pem)),
       passphrase => -e $passphrase ? $passphrase : undef,
       revoke     => $cert,
     }
@@ -50,25 +50,22 @@ sub action_revoke {
 }
 
 sub action_root {
-  my ($self, @args) = @_;
-  my $sslmaker = App::sslmaker->new(subject => $self->subject);
-  my $home     = $self->home ? Path::Tiny->new($self->home) : Path::Tiny->new('pki/CA')->absolute;
-  my $args     = {
+  my $self = shift;
 
-    # key
-    home       => $home,
+  my $args = {
     bits       => $self->bits || 8192,
-    key        => $home->child('private/ca.key.pem'),
-    passphrase => $home->child('private/passphrase'),
-
-    # cert
-    cert => $home->child('certs/ca.cert.pem'),
-    days => $self->days || 365 * 30,
+    cert       => $self->_root_file('cert'),
+    days       => $self->days || 365 * 30,
+    home       => $self->root->parent,
+    key        => $self->_root_file('key'),
+    passphrase => $self->root->parent->child(qw(passphrase)),
   };
 
   $self->_print(d %$args);
-  $sslmaker->subject or die "--subject is required\n";
-  $sslmaker->make_directories({home => $home, templates => 1});
+
+  my $sslmaker = App::sslmaker->new;
+  $sslmaker->subject($self->subject);
+  $sslmaker->make_directories({home => $args->{home}, templates => 1});
   $self->run_maybe($args->{key},  sub { $sslmaker->$wrapper(make_key  => $args) });
   $self->run_maybe($args->{cert}, sub { $sslmaker->$wrapper(make_cert => $args) });
   $self->_warn("Done.\n");
@@ -85,24 +82,22 @@ sub action_code {
 }
 
 sub action_generate {
-  my $self     = shift;
-  my $cn       = shift || die "Usage: $0 generate <CN>\n";
-  my $sslmaker = App::sslmaker->new(subject => $self->subject);
-  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
+  my $self = shift;
+  my $cn   = shift || die "Usage: $0 generate <CN>\n";
+
   my $args = {
-
-    # key
-    home => $home,
-    bits => $self->bits || App::sslmaker::DEFAULT_BITS(),
-    key  => "$cn.key.pem",
-
-    # csr
+    bits    => $self->bits,
     csr     => "$cn.csr.pem",
-    days    => $self->days || App::sslmaker::DEFAULT_DAYS(),
+    days    => $self->days,
+    home    => $self->home,
+    key     => "$cn.key.pem",
     subject => "/CN=$cn",
   };
 
-  $sslmaker->subject or die "--subject is required\n";
+  my $sslmaker          = App::sslmaker->new;
+  my $intermediate_cert = $self->home->child(qw(certs ca.cert.pem));
+  $sslmaker->subject(
+    -r $intermediate_cert ? ($intermediate_cert, $self->subject) : ($self->subject));
   $self->run_maybe($args->{key}, sub { $sslmaker->make_key($args) });
   $self->run_maybe($args->{csr}, sub { $sslmaker->make_csr($args) });
   $self->_print("// Next: Need to send $args->{csr} to SSL admin for signing.\n");
@@ -110,41 +105,35 @@ sub action_generate {
 }
 
 sub action_intermediate {
-  my ($self, @args) = @_;
-  my $sslmaker = App::sslmaker->new(subject => $self->subject);
-  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
-  my $root_home
-    = $self->root_home ? Path::Tiny->new($self->root_home) : $home->parent->child('CA')->absolute;
+  my $self = shift;
 
+  my $home = $self->home;
   my $args = {
-
-    # key
-    home       => $home,
-    key        => $home->child('private/ca.key.pem'),
-    bits       => $self->bits || App::sslmaker::DEFAULT_BITS(),
-    passphrase => $home->child('private/passphrase'),
-
-    # csr
-    csr  => $home->child('certs/ca.csr.pem'),
-    days => $self->days || 365 * 28,
-
-    # cert
-    ca_cert    => $root_home->child('certs/ca.cert.pem'),
-    ca_key     => $root_home->child('private/ca.key.pem'),
-    cert       => $home->child('certs/ca.cert.pem'),
+    bits       => $self->bits,
+    ca_cert    => $self->_root_file('cert'),
+    ca_key     => $self->_root_file('key'),
+    cert       => $home->child(qw(certs ca.cert.pem)),
+    csr        => $home->child(qw(certs ca.csr.pem)),
+    days       => $self->days || 365 * 28,
     extensions => 'v3_ca',
+    home       => $home,
+    key        => $home->child(qw(private ca.key.pem)),
+    passphrase => $home->child(qw(private passphrase)),
   };
 
   $self->_print(d %$args);
-  $sslmaker->subject or die "--subject is required\n";
+
+  my $sslmaker = App::sslmaker->new;
+  $sslmaker->subject($args->{ca_cert}, $self->subject);
   $sslmaker->make_directories({home => $home, templates => 1});
   $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
   $self->run_maybe($args->{csr}, sub { $sslmaker->$wrapper(make_csr => $args) });
-  $args->{home}       = $root_home;
-  $args->{passphrase} = $root_home->child('private/passphrase');
+
+  $args->{home}       = $self->root->parent;
+  $args->{passphrase} = $self->root->parent->child(qw(passphrase));
   $self->run_maybe($args->{cert}, sub { $sslmaker->$wrapper(sign_csr => $args) });
 
-  $args->{chain_cert} = $home->child('certs/ca-chain.cert.pem');
+  $args->{chain_cert} = $home->child(qw(certs ca-chain.cert.pem));
   $sslmaker->_cat(@$args{qw( cert ca_cert chain_cert )});
   $self->_print("// Generated $args->{chain_cert} from CA and intermediate certificate\n");
 
@@ -162,7 +151,6 @@ sub action_intermediate {
 sub action_nginx {
   my $self   = shift;
   my $domain = shift || die "Usage: $0 nginx <domain>\n";
-  my $home   = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
 
   $self->_print(App::sslmaker->_render_template(
     'nginx.config',
@@ -170,7 +158,7 @@ sub action_nginx {
       domain  => $domain,
       key     => "/etc/nginx/ssl/$domain.key.pem",
       cert    => "/etc/nginx/ssl/$domain.cert.pem",
-      ca_cert => $home->child('certs/ca-chain.cert.pem'),
+      ca_cert => $self->home->child(qw(certs ca-chain.cert.pem)),
     },
   ));
 }
@@ -187,7 +175,7 @@ sub action_pod {
 sub action_sign {
   my ($self, $csr, $cert) = @_;
   my $sslmaker = App::sslmaker->new;
-  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
+  my $home     = $self->home;
 
   unless ($cert) {
     $cert = $csr;
@@ -197,12 +185,12 @@ sub action_sign {
   $sslmaker->$wrapper(
     sign_csr => {
       home       => $home,
-      ca_cert    => $home->child('certs/ca.cert.pem'),
-      ca_key     => $home->child('private/ca.key.pem'),
+      ca_cert    => $home->child(qw(certs ca.cert.pem)),
+      ca_key     => $home->child(qw(private ca.key.pem)),
       cert       => $cert,
       csr        => $csr,
       extensions => 'usr_cert',
-      passphrase => $home->child('private/passphrase'),
+      passphrase => $home->child(qw(private passphrase)),
     }
   );
 
@@ -218,6 +206,9 @@ sub catch {
 
   # remove stacktrace
   $errstr =~ s!\sat\s\S+\sline.*!!s;
+
+  # rewrite invalid input
+  $errstr =~ s!"subject"!--subject!s;
 
   # parse openssl exception
   if ($errstr =~ s!\sFAIL\s\((\d+)\)\s\((.*)\)$!!s) {
@@ -241,11 +232,39 @@ sub run_maybe {
   }
 }
 
+sub _build_home {
+  my $self = shift;
+
+  my $path = $self->home || $ENV{SSLMAKER_HOME};
+  return "$path/intermediate" if $path and (-d "$path/intermediate" or !-d $path);
+  return $path                if $path;
+
+  for (qw(pki ssl)) {
+    my $path = "/etc/$_";
+    return "$path/sslmaker/intermediate" if -w $path;
+  }
+
+  die "Cannot detect default --home. Maybe you have to run as root?\n";
+}
+
+sub _root_file {
+  my ($self, $ext) = @_;
+  my $base = $self->root->basename;
+  $base =~ s!\b(cert|key)\b!$ext!;
+  return $self->root->parent->child($base);
+}
+
 sub _print { shift->silent or print @_ }
 sub _warn  { shift->silent or warn @_ }
 
 app {
   my ($self, $action, @args) = @_;
+  $action ||= 'pod';
+
+  if ($action ne 'pod') {
+    $self->home(Path::Tiny->new($self->_build_home)->absolute);
+    $self->root(Path::Tiny->new($self->root || $self->home->child(qw(root ca.key.pem)))->absolute);
+  }
 
   unless ($action and $self->can("action_$action")) {
     $self->_script->print_help;
@@ -270,32 +289,28 @@ sslmaker - Generate SSL key, cert and csr
 
   # Generate root CA key and certificate
   # https://jamielinux.com/articles/2013/08/act-as-your-own-certificate-authority/
-  $ sslmaker --home /path/to/pki/CA root
+  $ sslmaker --subject "/C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=example.com/emailAddress=admin@example.com" root
 
   # Generate intermediate CA key and certificate
   # https://jamielinux.com/articles/2013/08/create-an-intermediate-certificate-authority/
-  $ sslmaker --root-home /path/to/pki/CA --home /path/to/pki/intermediate intermediate
+  $ sslmaker intermediate
 
   # Generate client or server key and certificate signing request
   # https://jamielinux.com/articles/2013/08/create-and-sign-ssl-certificates-certificate-authority/
-  $ sslmaker --home /path/to/pki/intermediate generate [CN]
-  $ sslmaker --home /path/to/pki/intermediate generate www.example.com
-  $ sslmaker --home /path/to/pki/intermediate nginx www.example.com
+  $ sslmaker generate [CN]
+  $ sslmaker generate www.example.com
+  $ sslmaker nginx www.example.com
 
   # Sign a certificate signing request
-  $ sslmaker --home /path/to/pki/intermediate sign www.example.com.csr.pem [outfile]
+  $ sslmaker sign www.example.com.csr.pem [outfile]
 
   # Revoke a certificate
-  $ sslmaker --home /path/to/pki/intermediate revoke [cert]
-  $ sslmaker --home /path/to/pki/intermediate revoke intermediate/newcerts/1000.pem
+  $ sslmaker revoke [cert]
+  $ sslmaker revoke intermediate/newcerts/1000.pem
 
   # Show the manual for App::sslmaker or the complete source code
   $ sslmaker pod
   $ sslmaker code | less
-
-Set SSLMAKER_DEBUG=0 to avoid openssl output.
-Set SSLMAKER_HOME=/etc/pki for default --home.
-Set SSLMAKER_SUBJECT=/C=US for default --subject.
 
 =head1 DISCLAIMER, COPYRIGHT AND LICENSE
 
