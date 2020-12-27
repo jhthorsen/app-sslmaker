@@ -1,17 +1,19 @@
 package App::sslmaker;
 use strict;
 use warnings;
-use Carp 'confess';
+
+use Carp qw(confess);
 use Path::Tiny;
 use File::umask;
-use constant DEBUG => $ENV{SSLMAKER_DEBUG} ? 1 : 0;
+
+use constant DEBUG        => $ENV{SSLMAKER_DEBUG} ? 1 : 0;
 use constant DEFAULT_BITS => 4096;
 use constant DEFAULT_DAYS => 365;
 
 our $VERSION = '0.13';
 our $OPENSSL = $ENV{SSLMAKER_OPENSSL} || 'openssl';
 
-my @CONFIG_TEMPLATE_KEYS = qw( bits cert crl_days days home key );
+my @CONFIG_TEMPLATE_KEYS = qw(bits cert crl_days days home key);
 
 # heavily inspired by Mojo::Loader::_all()
 my %DATA = do {
@@ -20,15 +22,15 @@ my %DATA = do {
   $data =~ s/^.*\n__DATA__\r?\n/\n/s;
   $data =~ s/\n__END__\r?\n.*$/\n/s;
   $data = [split /^@@\s*(.+?)\s*\r?\n/m, $data];
-  shift @$data; # first element is empty string
+  shift @$data;    # first element is empty string
   @$data;
 };
 
 # need to be defined up front
 sub openssl {
-  my $cb = ref $_[-1] eq 'CODE' ? pop : sub { warn $_[1] if length $_[1] and DEBUG == 2 };
-  my $self = ref $_[0] ? shift : __PACKAGE__;
-  my $buf = '';
+  my $cb   = ref $_[-1] eq 'CODE' ? pop   : sub { warn $_[1] if length $_[1] and DEBUG == 2 };
+  my $self = ref $_[0]            ? shift : __PACKAGE__;
+  my $buf  = '';
 
   use IPC::Open3;
   use Symbol;
@@ -39,7 +41,7 @@ sub openssl {
   while (1) {
     my $l = sysread $OUT, my $read, 8096;
     confess "$OPENSSL: $!" unless defined $l;
-    last unless $l;
+    last                   unless $l;
     $buf .= $read;
   }
 
@@ -50,7 +52,8 @@ sub openssl {
 
 sub subject {
   return do { $_[0]->{subject} = $_[1]; $_[0] } if @_ == 2;
-  $_[0]->{subject} //= '/C=NO/ST=Oslo/L=Oslo/O=Example/OU=Prime/CN=example.com/emailAddress=admin@example.com';
+  $_[0]->{subject}
+    //= '/C=NO/ST=Oslo/L=Oslo/O=Example/OU=Prime/CN=example.com/emailAddress=admin@example.com';
   return $_[0]->{subject};
 }
 
@@ -58,14 +61,14 @@ sub make_cert {
   my ($self, $args) = @_;
   my $asset = $args->{cert} ? Path::Tiny->new($args->{cert}) : Path::Tiny->tempfile;
 
-  local $UMASK = 0222; # make files with mode 444
+  local $UMASK = 0222;    # make files with mode 444
 
-  openssl qw( req -new -sha256 -x509 -extensions v3_ca ),
+  openssl qw(req -new -sha256 -x509 -extensions v3_ca),
     -passin => $self->_passphrase($args->{passphrase}),
-    -days => $args->{days} || DEFAULT_DAYS,
-    -key => $args->{key} || '',
-    -out => $asset->path,
-    -subj => $self->_render_ssl_subject($args->{subject});
+    -days   => $args->{days} || DEFAULT_DAYS,
+    -key    => $args->{key}  || '',
+    -out    => $asset->path,
+    -subj   => $self->_render_ssl_subject($args->{subject});
 
   return $asset;
 }
@@ -74,11 +77,11 @@ sub make_crl {
   my ($self, $args) = @_;
   my $asset = $args->{crl} ? Path::Tiny->new($args->{crl}) : Path::Tiny->tempfile;
 
-  local $UMASK = 0122; # make files with mode 644
+  local $UMASK = 0122;    # make files with mode 644
 
-  openssl qw( ca -gencrl ),
+  openssl qw(ca -gencrl),
     -keyfile => $args->{key},
-    -cert => $args->{cert},
+    -cert    => $args->{cert},
     $args->{passphrase} ? (-passin => $self->_passphrase($args->{passphrase})) : (),
     -out => $asset->path;
 
@@ -89,13 +92,13 @@ sub make_csr {
   my ($self, $args) = @_;
   my $asset = $args->{csr} ? Path::Tiny->new($args->{csr}) : Path::Tiny->tempfile;
 
-  local $UMASK = 0277; # make files with mode 400
+  local $UMASK = 0277;    # make files with mode 400
 
-  openssl qw( req -new -sha256 ),
+  openssl qw(req -new -sha256),
     $args->{passphrase} ? (-passin => $self->_passphrase($args->{passphrase})) : (),
-    -key => $args->{key},
+    -key  => $args->{key},
     -days => $args->{days} || DEFAULT_DAYS,
-    -out => $asset->path,
+    -out  => $asset->path,
     -subj => $self->_render_ssl_subject($args->{subject});
 
   return $asset;
@@ -108,17 +111,17 @@ sub make_directories {
 
   $home->mkpath;
   -w $home or confess "Cannot write to $home";
-  mkdir $home->child($_) for qw( certs crl newcerts private );
+  mkdir $home->child($_) for qw(certs crl newcerts private);
   chmod 0700, $home->child('private') or confess "Could not chmod 0700 'private' in $home";
 
   if ($args->{templates}) {
-    local $UMASK = 0122; # make files with mode 644
+    local $UMASK = 0122;    # make files with mode 644
     $self->render_to_file('crlnumber', $file, {}) unless -e ($file = $home->child('crlnumber'));
     $self->render_to_file('index.txt', $file, {}) unless -e ($file = $home->child('index.txt'));
-    $self->render_to_file('serial', $file, {}) unless -e ($file = $home->child('serial'));
+    $self->render_to_file('serial',    $file, {}) unless -e ($file = $home->child('serial'));
   }
 
-  return $args->{home}; # TBD, but will be true
+  return $args->{home};     # TBD, but will be true
 }
 
 sub make_key {
@@ -126,15 +129,15 @@ sub make_key {
   my $asset = $args->{key} ? Path::Tiny->new($args->{key}) : Path::Tiny->tempfile;
   my $passphrase;
 
-  local $UMASK = 0277; # make files with mode 400
+  local $UMASK = 0277;      # make files with mode 400
 
   if ($passphrase = $args->{passphrase}) {
     $passphrase = $self->_passphrase($passphrase);
-    Path::Tiny->new($1)->spew({binmode => ':raw'}, $self->_random_passphrase(64)) if $passphrase =~ m!^file:(.+)! and !-e $1;
+    Path::Tiny->new($1)->spew({binmode => ':raw'}, $self->_random_passphrase(64))
+      if $passphrase =~ m!^file:(.+)! and !-e $1;
   }
 
-  openssl 'genrsa',
-    $passphrase ? (-aes256 => -passout => $passphrase) : (),
+  openssl 'genrsa', $passphrase ? (-aes256 => -passout => $passphrase) : (),
     -out => $asset->path,
     $args->{bits} || DEFAULT_BITS;
 
@@ -164,26 +167,25 @@ sub revoke_cert {
 
   local $args->{crl} = $args->{crl} || $home->child('crl.pem');
 
-  openssl qw( ca ),
-    $args->{passphrase} ? (-passin => $self->_passphrase($args->{passphrase})) : (),
+  openssl qw(ca), $args->{passphrase} ? (-passin => $self->_passphrase($args->{passphrase})) : (),
     -revoke => $args->{revoke};
 
-  return $self->make_crl($args); # TBD, but will be true
+  return $self->make_crl($args);    # TBD, but will be true
 }
 
 sub sign_csr {
   my ($self, $args) = @_;
   my $asset = $args->{cert} ? Path::Tiny->new($args->{cert}) : Path::Tiny->tempfile;
 
-  local $UMASK = 0222; # make files with mode 444
+  local $UMASK = 0222;              # make files with mode 444
 
-  openssl qw( ca -batch -notext -md sha256 ),
-    -keyfile => $args->{ca_key},
-    -cert => $args->{ca_cert},
-    -passin => $self->_passphrase($args->{passphrase}),
+  openssl qw(ca -batch -notext -md sha256),
+    -keyfile    => $args->{ca_key},
+    -cert       => $args->{ca_cert},
+    -passin     => $self->_passphrase($args->{passphrase}),
     -extensions => $args->{extensions} || 'usr_cert',
-    -out => $asset->path,
-    -in => $args->{csr};
+    -out        => $asset->path,
+    -in         => $args->{csr};
 
   return $asset;
 }
@@ -195,7 +197,7 @@ sub with_config {
   local $args->{home} = $self->_home($args);
 
   {
-    local $UMASK = 0177; # read/write for current user
+    local $UMASK = 0177;    # read/write for current user
     $self->{$key} ||= $self->render_to_file('openssl.cnf', $args);
   }
 
@@ -216,9 +218,9 @@ sub _cat {
 
 sub _home {
   my ($self, $args) = @_;
-  return Path::Tiny->new($args->{home}) if exists $args->{home};
+  return Path::Tiny->new($args->{home})              if exists $args->{home};
   return Path::Tiny->new($args->{ca_key})->parent(2) if $args->{ca_key};
-  return Path::Tiny->new($args->{key})->parent(2) if $args->{key};
+  return Path::Tiny->new($args->{key})->parent(2)    if $args->{key};
   confess 'home is required';
 }
 
@@ -232,27 +234,28 @@ sub _passphrase {
 
 sub _random_passphrase {
   my ($self, $length) = @_;
-  my @chr = ('a'..'z', 'A'..'Z', 0..9);
-  join '', map { $chr[rand @chr] } 1..$length;
+  my @chr = ('a' .. 'z', 'A' .. 'Z', 0 .. 9);
+  join '', map { $chr[rand @chr] } 1 .. $length;
 }
 
 sub _render_ssl_subject {
-  my $self = shift;
+  my $self     = shift;
   my $override = shift // '';
-  my %subject = map { split '=', $_, 2 } split '/', $self->subject;
+  my %subject  = map { split '=', $_, 2 } split '/', $self->subject;
 
   for my $kv (split '/', $override) {
     $subject{$1} = $2 if $kv =~ /^([^=]+)=(.*)$/;
   }
 
-  return join '/', '', map { "$_=$subject{$_}" } grep { defined $subject{$_} } qw( C ST L O OU CN emailAddress );
+  return join '/', '',
+    map {"$_=$subject{$_}"} grep { defined $subject{$_} } qw(C ST L O OU CN emailAddress);
 }
 
 # used in script/sslmaker
 sub _render_template {
   my ($self, $name, $stash) = @_;
   my $template = $DATA{$name} // confess "No such template: $name";
-  $template =~ s!<%=\s*([^%]+)\s*%>!{eval $1 // confess $@}!ges; # super cheap template parser
+  $template =~ s!<%=\s*([^%]+)\s*%>!{eval $1 // confess $@}!ges;    # super cheap template parser
   $template;
 }
 
@@ -365,10 +368,10 @@ Holds the default subject field for the certificate.
 =head2 make_cert
 
   $asset = $self->make_cert({
-              key => "/path/to/private/input.key.pem",
+              key        => "/path/to/private/input.key.pem",
               passphrase => "/path/to/passphrase.txt",
-              days => $number_of_days, # default: 365
-              subject => '/C=NO/ST=Oslo', # optional
+              days       => $number_of_days, # default: 365
+              subject    => '/C=NO/ST=Oslo', # optional
             });
 
 This method will generate a SSL certificate using a C<key> generated by
@@ -384,8 +387,8 @@ this method.
 =head2 make_crl
 
   $asset = $self->make_crl({
-              key => "/path/to/private/input.key.pem",
-              cert => "/path/to/cefrt/input.cert.pem",
+              key        => "/path/to/private/input.key.pem",
+              cert       => "/path/to/cefrt/input.cert.pem",
               passphrase => "/path/to/passphrase.txt", # optional
             });
 
@@ -404,10 +407,10 @@ See also L</revoke_cert>.
 =head2 make_csr
 
   $asset = $self->make_csr({
-              key => "/path/to/private/input.key.pem",
+              key        => "/path/to/private/input.key.pem",
               passphrase => "/path/to/passphrase.txt",
-              subject => '/C=NO/ST=Oslo',
-              days => $number_of_days, # default: 365
+              subject    => '/C=NO/ST=Oslo',
+              days       => $number_of_days, # default: 365
             });
 
 This method will generate a SSL certificate signing request using a C<key>
@@ -422,7 +425,7 @@ by passing on C<csr> to this method.
 =head2 make_directories
 
   $self->make_directories({
-    home => "/path/to/pki",
+    home      => "/path/to/pki",
     templates => 1, # default: false
   });
 
@@ -442,7 +445,7 @@ expects. Set C<$emplates> to a true value to generate L<files|/render_to_file>.
 
   $asset = $self->make_key({
               passphrase => "/path/to/passphrase.txt", # optional
-              bits => 8192, # default: 4096
+              bits       => 8192, # default: 4096
             });
 
 This method will generate a SSL key.
@@ -497,9 +500,9 @@ See L</TEMPLATES> for list of valid templates.
 
   $self->with_config(
     revoke_cert => {
-      key => "/path/to/private/ca.key.pem",
-      cert => "/path/to/certs/ca.cert.pem",
-      crl => "/path/to/crl.pem",
+      key    => "/path/to/private/ca.key.pem",
+      cert   => "/path/to/certs/ca.cert.pem",
+      crl    => "/path/to/crl.pem",
       revoke => "/path/to/newcerts/1000.pem",
     },
   );
@@ -510,9 +513,9 @@ C<OPENSSL_CONF> or inside L</with_config>.
 =head2 sign_csr
 
   $asset = $self->sign_csr({
-              csr => "/path/to/certs/input.csr.pem",
-              ca_key => "/path/to/private/ca.key.pem",
-              ca_cert => "/path/to/certs/ca.cert.pem",
+              csr        => "/path/to/certs/input.csr.pem",
+              ca_key     => "/path/to/private/ca.key.pem",
+              ca_cert    => "/path/to/certs/ca.cert.pem",
               passphrase => "/path/to/passphrase.txt",
               extensions => "v3_ca", # default: usr_cert
             });
@@ -534,9 +537,9 @@ file. The C<%stash> in the template will be constructed from the C<%args>,
 which is also passed on to the next C<$method>. Example:
 
   $asset = $self->with_config(make_key => {
-              home => "/path/to/pki",
+              home       => "/path/to/pki",
               passphrase => "/path/to/pki/private/passphrase.txt",
-              bits => 8192,
+              bits       => 8192,
            });
 
 The config file will be removed when C<$self> go out of scope.
@@ -582,7 +585,7 @@ C<%stash>, it will be used as the start number, which defaults to 1000.
 
 =head2 Code
 
-Copyright (C) 2014, Jan Henning Thorsen
+Copyright (C) Jan Henning Thorsen
 
 The code is free software, you can redistribute it and/or modify it under the
 terms of the Artistic License version 2.0.

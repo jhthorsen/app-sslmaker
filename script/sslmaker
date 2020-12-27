@@ -1,14 +1,18 @@
 #!/usr/bin/env perl
-BEGIN { $ENV{SSLMAKER_DEBUG} //= grep { /^--silent/ } @ARGV ? 0 : 1; }
+BEGIN {
+  $ENV{SSLMAKER_DEBUG} //= grep {/^--silent/} @ARGV ? 0 : 1;
+}
 use Applify;
 use Data::Dumper ();
 use if do { @ARGV != 1 or $ARGV[0] ne 'pack' }, 'App::sslmaker';
 
-option int => bits => 'SSL key bit size';
-option int => days => 'Number of days the cert should be valid';
-option str => home => 'Location of intermediate SSL files';
+option int => bits      => 'SSL key bit size';
+option int => days      => 'Number of days the cert should be valid';
+option str => home      => 'Location of intermediate SSL files';
 option str => root_home => 'Location of root SSL files';
-option str => subject => 'Example: /C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=example.com/emailAddress=admin@example.com', $ENV{SSLMAKER_SUBJECT} || '';
+option str => subject   =>
+  'Example: /C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=example.com/emailAddress=admin@example.com',
+  $ENV{SSLMAKER_SUBJECT} || '';
 option bool => silent => 'Only output data on failure';
 
 documentation __FILE__;
@@ -23,7 +27,7 @@ sub d {
   my $d = {@_};
   $_ and $_ = "$_" for values %$d;
   my $json = Data::Dumper->new([$d])->Indent(1)->Sortkeys(1)->Terse(1)->Useqq(1)->Dump;
-  $json =~ s/" => /": /g; # ugly
+  $json =~ s/" => /": /g;    # ugly
   $json;
 }
 
@@ -33,12 +37,14 @@ sub action_revoke {
   my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
   my $passphrase = $home->child('private/passphrase');
 
-  $sslmaker->$wrapper(revoke_cert => {
-    cert => $home->child('certs/ca.cert.pem'),
-    key => $home->child('private/ca.key.pem'),
-    passphrase => -e $passphrase ? $passphrase : undef,
-    revoke => $cert,
-  });
+  $sslmaker->$wrapper(
+    revoke_cert => {
+      cert       => $home->child('certs/ca.cert.pem'),
+      key        => $home->child('private/ca.key.pem'),
+      passphrase => -e $passphrase ? $passphrase : undef,
+      revoke     => $cert,
+    }
+  );
 
   $self->_warn("Done.\n");
 }
@@ -46,13 +52,15 @@ sub action_revoke {
 sub action_root {
   my ($self, @args) = @_;
   my $sslmaker = App::sslmaker->new(subject => $self->subject);
-  my $home = $self->home ? Path::Tiny->new($self->home) : Path::Tiny->new('pki/CA')->absolute;
-  my $args = {
+  my $home     = $self->home ? Path::Tiny->new($self->home) : Path::Tiny->new('pki/CA')->absolute;
+  my $args     = {
+
     # key
-    home => $home,
-    bits => $self->bits || 8192,
-    key => $home->child('private/ca.key.pem'),
+    home       => $home,
+    bits       => $self->bits || 8192,
+    key        => $home->child('private/ca.key.pem'),
     passphrase => $home->child('private/passphrase'),
+
     # cert
     cert => $home->child('certs/ca.cert.pem'),
     days => $self->days || 365 * 30,
@@ -60,8 +68,8 @@ sub action_root {
 
   $self->_print(d %$args);
   $sslmaker->subject or die "--subject is required\n";
-  $sslmaker->make_directories({ home => $home, templates => 1 });
-  $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
+  $sslmaker->make_directories({home => $home, templates => 1});
+  $self->run_maybe($args->{key},  sub { $sslmaker->$wrapper(make_key  => $args) });
   $self->run_maybe($args->{cert}, sub { $sslmaker->$wrapper(make_cert => $args) });
   $self->_warn("Done.\n");
 }
@@ -77,18 +85,20 @@ sub action_code {
 }
 
 sub action_generate {
-  my $self = shift;
-  my $cn = shift || die "Usage: $0 generate <CN>\n";
+  my $self     = shift;
+  my $cn       = shift || die "Usage: $0 generate <CN>\n";
   my $sslmaker = App::sslmaker->new(subject => $self->subject);
   my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
   my $args = {
+
     # key
     home => $home,
     bits => $self->bits || App::sslmaker::DEFAULT_BITS(),
-    key => "$cn.key.pem",
+    key  => "$cn.key.pem",
+
     # csr
-    csr => "$cn.csr.pem",
-    days => $self->days || App::sslmaker::DEFAULT_DAYS(),
+    csr     => "$cn.csr.pem",
+    days    => $self->days || App::sslmaker::DEFAULT_DAYS(),
     subject => "/CN=$cn",
   };
 
@@ -103,30 +113,34 @@ sub action_intermediate {
   my ($self, @args) = @_;
   my $sslmaker = App::sslmaker->new(subject => $self->subject);
   my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
-  my $root_home = $self->root_home ? Path::Tiny->new($self->root_home) : $home->parent->child('CA')->absolute;
+  my $root_home
+    = $self->root_home ? Path::Tiny->new($self->root_home) : $home->parent->child('CA')->absolute;
 
   my $args = {
+
     # key
-    home => $home,
-    key => $home->child('private/ca.key.pem'),
-    bits => $self->bits || App::sslmaker::DEFAULT_BITS(),
+    home       => $home,
+    key        => $home->child('private/ca.key.pem'),
+    bits       => $self->bits || App::sslmaker::DEFAULT_BITS(),
     passphrase => $home->child('private/passphrase'),
+
     # csr
-    csr => $home->child('certs/ca.csr.pem'),
+    csr  => $home->child('certs/ca.csr.pem'),
     days => $self->days || 365 * 28,
+
     # cert
-    ca_cert => $root_home->child('certs/ca.cert.pem'),
-    ca_key => $root_home->child('private/ca.key.pem'),
-    cert => $home->child('certs/ca.cert.pem'),
+    ca_cert    => $root_home->child('certs/ca.cert.pem'),
+    ca_key     => $root_home->child('private/ca.key.pem'),
+    cert       => $home->child('certs/ca.cert.pem'),
     extensions => 'v3_ca',
   };
 
   $self->_print(d %$args);
   $sslmaker->subject or die "--subject is required\n";
-  $sslmaker->make_directories({ home => $home, templates => 1 });
+  $sslmaker->make_directories({home => $home, templates => 1});
   $self->run_maybe($args->{key}, sub { $sslmaker->$wrapper(make_key => $args) });
   $self->run_maybe($args->{csr}, sub { $sslmaker->$wrapper(make_csr => $args) });
-  $args->{home} = $root_home;
+  $args->{home}       = $root_home;
   $args->{passphrase} = $root_home->child('private/passphrase');
   $self->run_maybe($args->{cert}, sub { $sslmaker->$wrapper(sign_csr => $args) });
 
@@ -134,30 +148,31 @@ sub action_intermediate {
   $sslmaker->_cat(@$args{qw( cert ca_cert chain_cert )});
   $self->_print("// Generated $args->{chain_cert} from CA and intermediate certificate\n");
 
-  $sslmaker->openssl(verify => -CAfile => @$args{qw( ca_cert cert )}, sub {
-    my ($sslmaker, $output) = @_;
-    die $output if $output =~ /error/;
-  });
+  $sslmaker->openssl(
+    verify => -CAfile => @$args{qw( ca_cert cert )},
+    sub {
+      my ($sslmaker, $output) = @_;
+      die $output if $output =~ /error/;
+    }
+  );
 
   $self->_warn("Done.\n");
 }
 
 sub action_nginx {
-  my $self = shift;
+  my $self   = shift;
   my $domain = shift || die "Usage: $0 nginx <domain>\n";
-  my $home = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
+  my $home   = Path::Tiny->new($self->home || $ENV{SSLMAKER_HOME} || 'pki/intermediate')->absolute;
 
-  $self->_print(
-    App::sslmaker->_render_template(
-      'nginx.config',
-      {
-        domain => $domain,
-        key => "/etc/nginx/ssl/$domain.key.pem",
-        cert => "/etc/nginx/ssl/$domain.cert.pem",
-        ca_cert => $home->child('certs/ca-chain.cert.pem'),
-      },
-    )
-  );
+  $self->_print(App::sslmaker->_render_template(
+    'nginx.config',
+    {
+      domain  => $domain,
+      key     => "/etc/nginx/ssl/$domain.key.pem",
+      cert    => "/etc/nginx/ssl/$domain.cert.pem",
+      ca_cert => $home->child('certs/ca-chain.cert.pem'),
+    },
+  ));
 }
 
 sub action_pack {
@@ -179,15 +194,17 @@ sub action_sign {
     $cert =~ s!(\.csr)?\.pem$!\.cert.pem!;
   }
 
-  $sslmaker->$wrapper(sign_csr => {
-    home => $home,
-    ca_cert => $home->child('certs/ca.cert.pem'),
-    ca_key => $home->child('private/ca.key.pem'),
-    cert => $cert,
-    csr => $csr,
-    extensions => 'usr_cert',
-    passphrase => $home->child('private/passphrase'),
-  });
+  $sslmaker->$wrapper(
+    sign_csr => {
+      home       => $home,
+      ca_cert    => $home->child('certs/ca.cert.pem'),
+      ca_key     => $home->child('private/ca.key.pem'),
+      cert       => $cert,
+      csr        => $csr,
+      extensions => 'usr_cert',
+      passphrase => $home->child('private/passphrase'),
+    }
+  );
 
   $self->_print("// Generated $cert\n");
   $self->_warn("Done.\n");
@@ -195,8 +212,8 @@ sub action_sign {
 }
 
 sub catch {
-  my $self = shift;
-  my $errno = $!;
+  my $self   = shift;
+  my $errno  = $!;
   my $errstr = $@;
 
   # remove stacktrace
@@ -204,7 +221,7 @@ sub catch {
 
   # parse openssl exception
   if ($errstr =~ s!\sFAIL\s\((\d+)\)\s\((.*)\)$!!s) {
-    $errno = $1;
+    $errno  = $1;
     $errstr = $2;
   }
 
@@ -225,7 +242,7 @@ sub run_maybe {
 }
 
 sub _print { shift->silent or print @_ }
-sub _warn { shift->silent or warn @_ }
+sub _warn  { shift->silent or warn @_ }
 
 app {
   my ($self, $action, @args) = @_;
