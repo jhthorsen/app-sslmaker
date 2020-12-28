@@ -114,7 +114,9 @@ sub make_directories {
     local $UMASK = 0122;    # make files with mode 644
     $self->render_to_file('crlnumber', $file, {}) unless -e ($file = $home->child('crlnumber'));
     $self->render_to_file('index.txt', $file, {}) unless -e ($file = $home->child('index.txt'));
-    $self->render_to_file('serial',    $file, {}) unless -e ($file = $home->child('serial'));
+    $self->render_to_file('index.txt.attr', $file, {})
+      unless -e ($file = $home->child('index.txt.attr'));
+    $self->render_to_file('serial', $file, {}) unless -e ($file = $home->child('serial'));
   }
 
   return $args->{home};     # TBD, but will be true
@@ -684,6 +686,7 @@ __DATA__
 @@ crlnumber
 <%= $stash->{n} || 1000 %>
 @@ index.txt
+@@ index.txt.attr
 @@ serial
 <%= $stash->{n} || 1000 %>
 @@ nginx.config
@@ -742,7 +745,7 @@ stateOrProvinceName = optional
 localityName = optional
 organizationName = optional
 organizationalUnitName = optional
-commonName = supplied
+commonName = optional
 emailAddress = optional
 
 [ req ]

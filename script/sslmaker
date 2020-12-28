@@ -293,7 +293,7 @@ sslmaker - Generate SSL key, cert and csr
 
   # Generate intermediate CA key and certificate
   # https://jamielinux.com/articles/2013/08/create-an-intermediate-certificate-authority/
-  $ sslmaker intermediate
+  $ sslmaker intermediate --subject "/CN=sslmaker01.example.com"
 
   # Generate client or server key and certificate signing request
   # https://jamielinux.com/articles/2013/08/create-and-sign-ssl-certificates-certificate-authority/
