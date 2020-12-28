@@ -84,6 +84,6 @@ subtest 'sslmaker revoke example.com' => sub {
   like $index, qr{^R.*CN=client2\.example\.com$}m, 'index.txt has R client2.example.com';
 };
 
-#unlink @unlink;
-#$home->remove_tree({safe => 0});
+unlink @unlink;
+$home->remove_tree({safe => 0});
 done_testing;
