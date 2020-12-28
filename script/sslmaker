@@ -16,7 +16,7 @@ option str => subject =>
   $ENV{SSLMAKER_SUBJECT};
 option bool => silent => 'Only output data on failure';
 
-documentation __FILE__;
+documentation 'App::sslmaker';
 version 'App::sslmaker';
 
 my $wrapper = sub {
@@ -70,16 +70,6 @@ sub action_root {
   $self->run_maybe($args->{key},  sub { $sslmaker->$wrapper(make_key  => $args) });
   $self->run_maybe($args->{cert}, sub { $sslmaker->$wrapper(make_cert => $args) });
   $self->_warn("Done.\n");
-}
-
-sub action_code {
-  my $self = shift;
-
-  for my $file (__FILE__, $INC{'App/sslmaker.pm'}) {
-    $self->_print("--- $file\n");
-    local @ARGV = ($file);
-    $self->_print for <>;
-  }
 }
 
 sub action_dhparam {
@@ -177,7 +167,7 @@ sub action_pack {
   exec bash => -c => 'fatpack pack script/sslmaker > bin/sslmaker; rm -rf fatlib';
 }
 
-sub action_pod {
+sub action_man {
   exec perldoc => 'App::sslmaker';
 }
 
@@ -267,9 +257,10 @@ sub _warn  { shift->silent or warn @_ }
 
 app {
   my ($self, $action, @args) = @_;
-  $action ||= 'pod';
+  $action ||= 'man';
+  $action = 'man' if grep { $action eq $_ } qw(help pod);
 
-  if ($action ne 'pod') {
+  if ($action ne 'man') {
     $self->home(Path::Tiny->new($self->_build_home)->absolute);
     $self->root(Path::Tiny->new($self->root || $self->home->child(qw(root ca.key.pem)))->absolute);
   }
@@ -286,50 +277,3 @@ app {
 
   return 0;
 };
-
-=head1 NAME
-
-sslmaker - Generate SSL key, cert and csr
-
-=head1 SYNOPSIS
-
-  $ sslmaker [options] {action} {arg1,...}
-
-  # Generate root CA key and certificate
-  # https://jamielinux.com/articles/2013/08/act-as-your-own-certificate-authority/
-  $ sslmaker --subject "/C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=example.com/emailAddress=admin@example.com" root
-
-  # Generate intermediate CA key and certificate
-  # https://jamielinux.com/articles/2013/08/create-an-intermediate-certificate-authority/
-  $ sslmaker intermediate --subject "/CN=sslmaker01.example.com"
-
-  # Generate client or server key and certificate signing request
-  # https://jamielinux.com/articles/2013/08/create-and-sign-ssl-certificates-certificate-authority/
-  $ sslmaker generate [CN]
-  $ sslmaker generate www.example.com
-  $ sslmaker nginx www.example.com
-
-  # Sign a certificate signing request
-  $ sslmaker sign www.example.com.csr.pem [outfile]
-
-  # Revoke a certificate
-  $ sslmaker revoke [cert]
-  $ sslmaker revoke intermediate/newcerts/1000.pem
-
-  # Show the manual for App::sslmaker or the complete source code
-  $ sslmaker pod
-  $ sslmaker code | less
-
-  # Create dhparam file
-  $ sslmaker dhparam
-  $ sslmaker dhparam /etc/ssl/sslmaker/dhparam.pem 2048
-
-=head1 DISCLAIMER, COPYRIGHT AND LICENSE
-
-See L<App::sslmaker>
-
-=head1 AUTHOR
-
-Jan Henning Thorsen - C<jhthorsen@cpan.org>
-
-=cut
