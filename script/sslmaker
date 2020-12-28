@@ -5,7 +5,7 @@ BEGIN {
 use Applify;
 use Data::Dumper ();
 use File::Spec::Functions qw(catdir);
-use if do { @ARGV != 1 or $ARGV[0] ne 'pack' }, 'App::sslmaker';
+use Path::Tiny;
 
 option int => bits => 'SSL key bit size';
 option int => days => 'Number of days the cert should be valid';
@@ -162,11 +162,6 @@ sub action_nginx {
   ));
 }
 
-sub action_pack {
-  $ENV{PERL5LIB} = 'lib';
-  exec bash => -c => 'fatpack pack script/sslmaker > bin/sslmaker; rm -rf fatlib';
-}
-
 sub action_man {
   exec perldoc => 'App::sslmaker';
 }
@@ -271,6 +266,7 @@ app {
   }
 
   eval {
+    require App::sslmaker;
     $self->can("action_$action")->($self, @args);
     1;
   } or $self->catch;

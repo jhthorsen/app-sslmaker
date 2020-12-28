@@ -1,7 +1,0 @@
-sslmaker in this directory is fatpacked, meaning it can be run
-without downloading any dependencies:
-
-  $ wget https://raw.githubusercontent.com/jhthorsen/app-sslmaker/master/bin/sslmaker;
-  $ perl sslmaker;
-
-...at least if you're not running Perl from the last decade.
