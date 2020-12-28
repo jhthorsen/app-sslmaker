@@ -51,6 +51,7 @@ sub action_revoke {
 
 sub action_root {
   my $self = shift;
+  die "--subject is required\n" unless $self->subject;
 
   my $args = {
     bits       => $self->bits || 8192,
@@ -236,12 +237,11 @@ sub _build_home {
   my $self = shift;
 
   my $path = $self->home || $ENV{SSLMAKER_HOME};
-  return "$path/intermediate" if $path and (-d "$path/intermediate" or !-d $path);
-  return $path                if $path;
+  return $path if $path;
 
   for (qw(pki ssl)) {
     my $path = "/etc/$_";
-    return "$path/sslmaker/intermediate" if -w $path;
+    return "$path/sslmaker" if -w $path;
   }
 
   die "Cannot detect default --home. Maybe you have to run as root?\n";
