@@ -15,7 +15,7 @@ jobs:
       run: perl -V
     - name: Install dependencies
       run: |
-        cpanm -n Test::Pod Test::Pod::Coverage
+        cpanm -n IO::Socket::SSL Test::Pod Test::Pod::Coverage
         cpanm -n --installdeps .
     - name: Run perl tests
       run: prove -l
