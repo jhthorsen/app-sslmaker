@@ -1,0 +1,22 @@
+name: Linux CI
+on: [push]
+jobs:
+  perl:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        perl-version:
+        - '5.26'
+        - '5.30'
+    container:
+      image: perl:${{matrix.perl-version}}
+    steps:
+    - uses: actions/checkout@v2
+    - name: perl -V
+      run: perl -V
+    - name: Install dependencies
+      run: |
+        cpanm -n Test::Pod Test::Pod::Coverage
+        cpanm -n --installdeps .
+    - name: Run perl tests
+      run: prove -l
