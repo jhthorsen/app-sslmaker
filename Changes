@@ -2,6 +2,7 @@ Revision history for perl distribution App-sslmaker
 
 0.14 Not Released
  - Made sslmaker easier to run
+ - Add "sslmaker dhparam"
  - Add support for setting subject() from a certificate file
  - Add support for more environment variables
    * SSLMAKER_BITS

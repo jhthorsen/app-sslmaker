@@ -107,7 +107,7 @@ sub make_directories {
 
   $home->mkpath;
   -w $home or confess "Cannot write to $home";
-  mkdir $home->child($_) for qw(certs crl newcerts private);
+  mkdir $home->child($_) for qw(certs csr crl newcerts private);
   chmod 0700, $home->child('private') or confess "Could not chmod 0700 'private' in $home";
 
   if ($args->{templates}) {

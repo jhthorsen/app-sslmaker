@@ -82,6 +82,14 @@ sub action_code {
   }
 }
 
+sub action_dhparam {
+  my $self = shift;
+  my $path = shift || $self->home->child('dhparam.pem');
+  my $bits = shift || 2048;
+
+  $self->run_maybe($path, sub { App::sslmaker::openssl(qw(dhparam -out) => $path, $bits) });
+}
+
 sub action_generate {
   my $self = shift;
   my $cn   = shift || die "Usage: $0 generate <CN>\n";
@@ -311,6 +319,10 @@ sslmaker - Generate SSL key, cert and csr
   # Show the manual for App::sslmaker or the complete source code
   $ sslmaker pod
   $ sslmaker code | less
+
+  # Create dhparam file
+  $ sslmaker dhparam
+  $ sslmaker dhparam /etc/ssl/sslmaker/dhparam.pem 2048
 
 =head1 DISCLAIMER, COPYRIGHT AND LICENSE
 
