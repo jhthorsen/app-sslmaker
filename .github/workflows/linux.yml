@@ -6,7 +6,6 @@ jobs:
     strategy:
       matrix:
         perl-version:
-        - '5.26'
         - '5.30'
     container:
       image: perl:${{matrix.perl-version}}
