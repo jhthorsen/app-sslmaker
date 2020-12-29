@@ -30,7 +30,7 @@ my %DATA = do {
 sub openssl {
   my $cb   = ref $_[-1] eq 'CODE' ? pop   : sub { warn $_[1] if length $_[1] and DEBUG == 2 };
   my $self = ref $_[0]            ? shift : __PACKAGE__;
-  my $buf = '';
+  my $buf  = '';
 
   use IPC::Open3;
   use Symbol;
@@ -41,7 +41,7 @@ sub openssl {
   while (1) {
     my $l = sysread $OUT, my $read, 8096;
     confess "$OPENSSL: $!" unless defined $l;
-    last unless $l;
+    last                   unless $l;
     $buf .= $read;
   }
 
@@ -738,7 +738,6 @@ crlnumber = $dir/crlnumber
 crl = <%= $stash->{crl} || '$dir/crl.pem' %>
 private_key = <%= $stash->{key} || '$dir/private/ca.key.pem' %>
 RANDFILE = $dir/private/.rand
-x509_extensions = usr_cert
 crl_extensions = crl_ext
 name_opt = ca_default
 cert_opt = ca_default
@@ -747,6 +746,18 @@ default_crl_days = <%= $stash->{crl_days} || 30 %>
 default_md = <%= $stash->{default_md} || 'sha256' %>
 preserve = no
 policy = policy_anything
+x509_extensions = basic_exts
+
+[ basic_exts ]
+basicConstraints = CA:FALSE
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer:always
+
+[ custom_req_extensions ]
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+basicConstraints = CA:true
+keyUsage = cRLSign, keyCertSign
 
 [ policy_anything ]
 countryName = optional
@@ -763,8 +774,8 @@ default_md = sha1
 default_keyfile = privkey.pem
 distinguished_name = req_distinguished_name
 attributes = req_attributes
-x509_extensions = v3_ca
 string_mask = utf8only
+x509_extensions = custom_req_extensions
 
 [ req_distinguished_name ]
 
@@ -784,7 +795,7 @@ basicConstraints = critical,CA:true
 keyUsage = cRLSign, keyCertSign
 
 [ crl_ext ]
-authorityKeyIdentifier=keyid:always
+authorityKeyIdentifier=keyid:always,issuer:always
 
 [ proxy_cert_ext ]
 basicConstraints = CA:FALSE
