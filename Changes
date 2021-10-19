@@ -1,6 +1,6 @@
 Revision history for perl distribution App-sslmaker
 
-0.14 Not Released
+0.14 2021-10-19T17:12:29+0900
  - Made sslmaker easier to run
  - Add "sslmaker dhparam"
  - Add support for setting subject() from a certificate file

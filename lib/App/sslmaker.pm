@@ -10,7 +10,7 @@ use constant DEBUG        => $ENV{SSLMAKER_DEBUG} ? 1 : 0;
 use constant DEFAULT_BITS => $ENV{SSLMAKER_BITS} || 4096;
 use constant DEFAULT_DAYS => $ENV{SSLMAKER_DAYS} || 365;
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 our $OPENSSL = $ENV{SSLMAKER_OPENSSL} || 'openssl';
 
 my @CONFIG_TEMPLATE_KEYS = qw(bits cert crl_days days home key);
@@ -119,7 +119,7 @@ sub make_directories {
     $self->render_to_file('serial', $file, {}) unless -e ($file = $home->child('serial'));
   }
 
-  return $args->{home};     # TBD, but will be true
+  return $args->{home};    # TBD, but will be true
 }
 
 sub make_key {
@@ -127,7 +127,7 @@ sub make_key {
   my $asset = $args->{key} ? Path::Tiny->new($args->{key}) : Path::Tiny->tempfile;
   my $passphrase;
 
-  local $UMASK = 0277;      # make files with mode 400
+  local $UMASK = 0277;     # make files with mode 400
 
   if ($passphrase = $args->{passphrase}) {
     $passphrase = $self->_passphrase($passphrase);
@@ -299,7 +299,7 @@ App::sslmaker - Be your own SSL certificate authority
 
 =head1 VERSION
 
-0.13
+0.14
 
 =head1 DESCRIPTION
 
