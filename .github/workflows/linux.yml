@@ -6,6 +6,7 @@ jobs:
     strategy:
       matrix:
         perl-version:
+        - '5.16'
         - '5.30'
     container:
       image: perl:${{matrix.perl-version}}
@@ -18,4 +19,4 @@ jobs:
         cpanm -n IO::Socket::SSL Test::Pod Test::Pod::Coverage
         cpanm -n --installdeps .
     - name: Run perl tests
-      run: prove -l
+      run: prove -wvl
