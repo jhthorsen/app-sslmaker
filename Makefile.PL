@@ -11,8 +11,13 @@ my %WriteMakefileArgs = (
   OBJECT         => '',
   BUILD_REQUIRES => {},
   TEST_REQUIRES  => {'Test::More' => '0.88'},
-  PREREQ_PM      => {'Applify'    => '0.12', 'File::umask' => '0.01', 'Path::Tiny' => '0.05'},
-  META_MERGE     => {
+  PREREQ_PM      => {
+    'Applify'        => '0.12',
+    'File::umask'    => '0.01',
+    'IO::Socket::IP' => '0.38',
+    'Path::Tiny'     => '0.05'
+  },
+  META_MERGE => {
     'dynamic_config' => 0,
     'meta-spec'      => {version => 2},
     'resources'      => {
