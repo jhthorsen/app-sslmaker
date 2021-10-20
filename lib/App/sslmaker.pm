@@ -273,7 +273,7 @@ sub _render_subject {
   my %subject;
   for (@_) {
     next unless $_;
-    my $s = -r ? $self->_read_subject_from_cert($_) : $self->_parse_subject($_);
+    my $s = -r $_ ? $self->_read_subject_from_cert($_) : $self->_parse_subject($_);
     $subject{$_} = $s->{$_} for keys %$s;
   }
 

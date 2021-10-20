@@ -1,5 +1,8 @@
 Revision history for perl distribution App-sslmaker
 
+0.15 Not Released
+ - Fix missing argument to "-r" on 5.16.x
+
 0.14 2021-10-19T17:12:29+0900
  - Made sslmaker easier to run
  - Add "sslmaker dhparam"
