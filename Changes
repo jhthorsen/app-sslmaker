@@ -2,6 +2,7 @@ Revision history for perl distribution App-sslmaker
 
 0.15 Not Released
  - Fix missing argument to "-r" on 5.16.x
+ - Fix parsing subject without spaces ("O=Company" v.s "O = Company")
 
 0.14 2021-10-19T17:12:29+0900
  - Made sslmaker easier to run

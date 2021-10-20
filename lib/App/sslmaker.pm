@@ -3,12 +3,13 @@ use strict;
 use warnings;
 
 use Carp qw(confess);
+use Data::Dumper ();
 use Path::Tiny;
 use File::umask;
 
-use constant DEBUG        => $ENV{SSLMAKER_DEBUG} ? 1 : 0;
-use constant DEFAULT_BITS => $ENV{SSLMAKER_BITS} || 4096;
-use constant DEFAULT_DAYS => $ENV{SSLMAKER_DAYS} || 365;
+use constant DEBUG        => $ENV{SSLMAKER_DEBUG} || 0;
+use constant DEFAULT_BITS => $ENV{SSLMAKER_BITS}  || 4096;
+use constant DEFAULT_DAYS => $ENV{SSLMAKER_DAYS}  || 365;
 
 our $VERSION = '0.14';
 our $OPENSSL = $ENV{SSLMAKER_OPENSSL} || 'openssl';
@@ -28,7 +29,7 @@ my %DATA = do {
 
 # need to be defined up front
 sub openssl {
-  my $cb   = ref $_[-1] eq 'CODE' ? pop   : sub { warn $_[1] if length $_[1] and DEBUG == 2 };
+  my $cb   = ref $_[-1] eq 'CODE' ? pop : sub { print STDERR $_[1] if DEBUG == 2 and length $_[1] };
   my $self = ref $_[0]            ? shift : __PACKAGE__;
   my $buf  = '';
 
@@ -235,7 +236,7 @@ sub _parse_subject {
 
   # /C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=example.com/emailAddress=admin@example.com
   # Subject: C = US, ST = Texas, L = Dallas, O = Company, OU = Department, CN = superduper
-  my $re = index($val, '/') == 0 ? qr{/([A-Za-z]+)=([^/]*)} : qr{([A-Za-z]+)\s+=\s+([^,]*)};
+  my $re = index($val, '/') == 0 ? qr{/([A-Za-z]+)=([^/]*)} : qr{([A-Za-z]+)\s*=\s*([^,]*)};
   my %subject;
   $subject{$1} = $2 while $val =~ /$re/g;
   return \%subject;
@@ -261,6 +262,7 @@ sub _read_subject_from_cert {
 
   # Subject: C = US, ST = Texas, L = Dallas, O = Company, OU = Department, CN = superduper
   return openssl qw(x509 -noout -text -in), $cert => sub {
+    print STDERR $_[1]               if DEBUG == 2 and length $_[1];
     return $self->_parse_subject($1) if $_[1] =~ m!Subject:\s+(.+)!;
   };
 
@@ -271,9 +273,12 @@ sub _render_subject {
   my $self = shift;
 
   my %subject;
-  for (@_) {
-    next unless $_;
-    my $s = -r $_ ? $self->_read_subject_from_cert($_) : $self->_parse_subject($_);
+  for my $i (@_) {
+    next unless $i;
+    warn qq(# [sslmaker] subject from @{[-r $i ? 'file' : 'data']} "$i"\n) if DEBUG == 2;
+    my $s = -r $i ? $self->_read_subject_from_cert($i) : $self->_parse_subject($i);
+    warn Data::Dumper->new([$s])->Indent(0)->Sortkeys(1)->Terse(1)->Useqq(1)->Dump, "\n"
+      if DEBUG == 2;
     $subject{$_} = $s->{$_} for keys %$s;
   }
 

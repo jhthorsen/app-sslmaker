@@ -3,14 +3,13 @@ BEGIN {
   $ENV{SSLMAKER_DEBUG} //= grep {/^--silent/} @ARGV ? 0 : 1;
 }
 use Applify;
-use Data::Dumper ();
 use File::Spec::Functions qw(catdir);
 use Path::Tiny;
 
-option int => bits => 'SSL key bit size';
-option int => days => 'Number of days the cert should be valid';
-option str => home => 'sslmaker working directory';
-option str => root => 'Path to root key.pem. Required for making intermediate key+cert';
+option int => bits    => 'SSL key bit size';
+option int => days    => 'Number of days the cert should be valid';
+option str => home    => 'sslmaker working directory';
+option str => root    => 'Path to root key.pem. Required for making intermediate key+cert';
 option str => subject =>
   'Example: /C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=example.com/emailAddress=admin@example.com',
   $ENV{SSLMAKER_SUBJECT};
@@ -198,10 +197,8 @@ sub catch {
   my $errno  = $!;
   my $errstr = $@;
 
-  # remove stacktrace
-  $errstr =~ s!\sat\s\S+\sline.*!!s;
-
-  # rewrite invalid input
+  # remove stacktrace and rewrite invalid input
+  $errstr =~ s!\sat\s\S+\sline.*!!s unless $ENV{HARNESS_ACTIVE};
   $errstr =~ s!"subject"!--subject!s;
 
   # parse openssl exception

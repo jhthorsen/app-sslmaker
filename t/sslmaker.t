@@ -27,7 +27,7 @@ subtest 'silent' => sub {
 subtest 'sslmaker root' => sub {
   $script->home($home);
   $script->subject('/C=US/ST=Texas/L=Dallas/O=Company/OU=Department/CN=superduper');
-  $script->run('root');
+  is eval { $script->run('root') }, 0, 'ran' or diag $@;
   ok -e $home->child('root/ca.cert.pem'), 'root/ca.cert.pem';
   ok -e $home->child('root/index.txt'),   'index.txt';
   ok -e $home->child('root/ca.key.pem'),  'root/ca.key.pem';
@@ -37,14 +37,13 @@ subtest 'sslmaker root' => sub {
 
 subtest 'sslmaker intermediate' => sub {
   $script->subject('');    # read subject from root CA
-  $script->run('intermediate');
+  is eval { $script->run('intermediate') }, 0, 'ran' or diag $@;
 
   ok -e $home->child('root/ca.cert.pem'), 'root/ca.cert.pem';
   ok -e $home->child('root/index.txt'),   'root/index.txt';
   ok -e $home->child('root/ca.key.pem'),  'root/ca.key.pem';
   ok -e $home->child('root/passphrase'),  'root/passphrase';
   ok -e $home->child('root/serial'),      'root/serial';
-
 
   ok -e $home->child('certs/ca.cert.pem'),       'certs/ca.cert.pem';
   ok -e $home->child('certs/ca.csr.pem'),        'certs/ca.csr.pem';
@@ -56,8 +55,8 @@ subtest 'sslmaker intermediate' => sub {
 };
 
 subtest 'sslmaker generate example.com' => sub {
-  $script->run(qw(generate client1.example.com));
-  $script->run(qw(generate client2.example.com));
+  is eval { $script->run(qw(generate client1.example.com)) }, 0, 'ran' or diag $@;
+  is eval { $script->run(qw(generate client2.example.com)) }, 0, 'ran' or diag $@;
   ok -e 'client1.example.com.key.pem', 'client1.example.com.key.pem';
   ok -e 'client1.example.com.csr.pem', 'client1.example.com.csr.pem';
   ok !-e 'client1.example.com.cert.pem',
@@ -65,8 +64,8 @@ subtest 'sslmaker generate example.com' => sub {
 };
 
 subtest 'sslmaker sign example.com.csr.pem' => sub {
-  $script->run(qw(sign client1.example.com.csr.pem));
-  $script->run(qw(sign client2.example.com.csr.pem));
+  is eval { $script->run(qw(sign client1.example.com.csr.pem)) }, 0, 'ran' or diag $@;
+  is eval { $script->run(qw(sign client2.example.com.csr.pem)) }, 0, 'ran' or diag $@;
   ok -e 'client2.example.com.cert.pem',
     'client2.example.com.cert.pem was created from intermediate';
 
@@ -76,8 +75,8 @@ subtest 'sslmaker sign example.com.csr.pem' => sub {
 };
 
 subtest 'sslmaker revoke example.com' => sub {
-  $script->run(qw(revoke client2.example.com.cert.pem));
-  $script->run(qw(revoke client1.example.com.cert.pem));
+  is eval { $script->run(qw(revoke client2.example.com.cert.pem)) }, 0, 'ran' or diag $@;
+  is eval { $script->run(qw(revoke client1.example.com.cert.pem)) }, 0, 'ran' or diag $@;
 
   my $index = $home->child('index.txt')->slurp;
   like $index, qr{^R.*CN=client1\.example\.com$}m, 'index.txt has R client1.example.com';
