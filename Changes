@@ -1,6 +1,6 @@
 Revision history for perl distribution App-sslmaker
 
-0.16 Not Released
+0.16 2021-10-21T12:01:29+0900
  - Try to fix sslmaker.t by clearing OPENSSL_CONF
    http://www.cpantesters.org/cpan/report/31620414-3171-11ec-88fe-b2691f24ea8f
 

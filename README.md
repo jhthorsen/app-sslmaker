@@ -4,7 +4,7 @@ App::sslmaker - Be your own SSL certificate authority
 
 # VERSION
 
-0.15
+0.16
 
 # DESCRIPTION
 
