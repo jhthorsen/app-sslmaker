@@ -13,6 +13,7 @@ my $home = path('local/tmp/sslmaker');
 my $script;
 
 unlink @unlink;
+delete $ENV{OPENSSL_CONF};
 
 subtest 'silent' => sub {
   local @ARGV = qw(--silent);
