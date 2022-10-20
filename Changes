@@ -1,6 +1,6 @@
 Revision history for perl distribution App-sslmaker
 
-0.17 Not Released
+0.17 2022-10-20T13:33:12
  - Add "--days" argument when signing too
    Contributor: Bjørn Mork
 
