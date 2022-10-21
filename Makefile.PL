@@ -15,8 +15,8 @@ my %WriteMakefileArgs = (
   EXE_FILES     => [],
   TEST_REQUIRES => {'Test::More' => '1.30'},
   PREREQ_PM     => {
-    'Applify'        => '0.12',
     'File::umask'    => '0.01',
+    'Getopt::App'    => '0.10',
     'IO::Socket::IP' => '0.38',
     'Path::Tiny'     => '0.05',
   },
