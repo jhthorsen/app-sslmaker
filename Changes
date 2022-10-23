@@ -1,6 +1,6 @@
 Revision history for perl distribution App-sslmaker
 
-0.18 Not Released
+0.18 2022-10-23T10:17:47
  - Replaced Applify with Getopt::App
  - Fix installing script/sslmaker
 
