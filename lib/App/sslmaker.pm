@@ -731,6 +731,7 @@ default_ca = CA_default
 unique_subject = <%= $stash->{unique_subject} || "no" %>
 
 [ CA_default ]
+copy_extensions = copy
 dir = <%= Path::Tiny->new($stash->{home})->absolute->stringify %>
 certs = $dir/certs
 crl_dir = $dir/crl
