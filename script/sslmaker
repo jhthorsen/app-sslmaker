@@ -24,7 +24,12 @@ my @options = (
 
 my $wrapper = sub {
   my ($sslmaker, $method, @args) = @_;
-  return $ENV{OPENSSL_CONF} ? $sslmaker->$method(@args) : $sslmaker->with_config($method, @args);
+
+  eval { return $ENV{OPENSSL_CONF} ? $sslmaker->$method(@args) : $sslmaker->with_config($method, @args); } or do {
+    $@ =~ s/\s+at\s+\S+\s+line.*/\n/s unless $ENV{TRACE};
+    print STDERR $@;
+    exit($? || $!);
+  };
 };
 
 sub getopt_subcommands {

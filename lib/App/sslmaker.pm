@@ -2,7 +2,7 @@ package App::sslmaker;
 use strict;
 use warnings;
 
-use Carp         qw(confess);
+use Carp         qw(confess croak);
 use Data::Dumper ();
 use Path::Tiny;
 use File::umask;
@@ -41,14 +41,14 @@ sub openssl {
 
   while (1) {
     my $l = sysread $OUT, my $read, 8096;
-    confess "$OPENSSL: $!" unless defined $l;
-    last                   unless $l;
+    croak "$OPENSSL: $!" unless defined $l;
+    last                 unless $l;
     $buf .= $read;
   }
 
   waitpid $pid, 0;
-  confess sprintf 'openssl %s FAIL (%s) (%s)', join(' ', @_), $? >> 8, $buf if $?;
-  $self->$cb($buf);
+  return $self->$cb($buf) unless $?;
+  croak $buf;
 }
 
 sub make_cert {
@@ -56,7 +56,7 @@ sub make_cert {
   my $asset = $args->{cert} ? Path::Tiny->new($args->{cert}) : Path::Tiny->tempfile;
 
   local $UMASK = 0222;    # make files with mode 444
-  confess '"subject" is required' unless my $subject = $self->_render_subject($self->subject, $args->{subject});
+  croak 'Parameter "subject" is required' unless my $subject = $self->_render_subject($self->subject, $args->{subject});
   openssl qw(req -new -sha256 -x509 -extensions v3_ca), (map { (-addext => $_) } grep {length} @{$args->{ext} || []}),
     -passin => $self->_passphrase($args->{passphrase}),
     -days   => $args->{days} || DEFAULT_DAYS,
@@ -87,7 +87,7 @@ sub make_csr {
 
   local $UMASK = 0277;    # make files with mode 400
 
-  confess '"subject" is required' unless my $subject = $self->_render_subject($self->subject, $args->{subject});
+  croak 'Parameter "subject" is required' unless my $subject = $self->_render_subject($self->subject, $args->{subject});
   openssl qw(req -new -sha256), $args->{passphrase} ? (-passin => $self->_passphrase($args->{passphrase})) : (),
     (map { (-addext => $_) } grep {length} @{$args->{ext} || []}),
     -key  => $args->{key},
@@ -104,9 +104,9 @@ sub make_directories {
   my $file;
 
   $home->mkpath;
-  -w $home or confess "Cannot write to $home";
+  -w $home or croak "Can't write to $home";
   mkdir $home->child($_) for qw(certs csr crl newcerts private);
-  chmod 0700, $home->child('private') or confess "Could not chmod 0700 'private' in $home";
+  chmod 0700, $home->child('private') or croak "Couldn't chmod 0700 'private' in $home";
 
   if ($args->{templates}) {
     local $UMASK = 0122;    # make files with mode 644
@@ -211,10 +211,10 @@ sub _cat {
   my $self = shift;
   my $dest = pop;
 
-  open my $DEST, '>', $dest or confess "Write $dest failed: $!";
+  open my $DEST, '>', $dest or croak "Couldn't write $dest: $!";
   local @ARGV = @_;
   print $DEST $_ for <>;
-  close $DEST or confess "Close $dest failed: $!";
+  close $DEST or croak "Couldn't close $dest: $!";
   return $dest;
 }
 
@@ -230,7 +230,7 @@ sub _home {
   return Path::Tiny->new($args->{home})              if exists $args->{home};
   return Path::Tiny->new($args->{ca_key})->parent(2) if $args->{ca_key};
   return Path::Tiny->new($args->{key})->parent(2)    if $args->{key};
-  confess 'home is required';
+  croak '$SSLMAKER_HOME is required';
 }
 
 sub _parse_subject {
@@ -248,8 +248,8 @@ sub _parse_subject {
 sub _passphrase {
   my ($self, $phrase) = @_;
 
-  confess "passphrase is required" unless defined $phrase and length $phrase;
-  return confess "TODO" if ref $phrase eq 'SCALAR';
+  croak 'Parameter "passphrase" is required' unless defined $phrase and length $phrase;
+  return croak "SCALAR is not yet supported" if ref $phrase eq 'SCALAR';
   return "file:$phrase";
 }
 
