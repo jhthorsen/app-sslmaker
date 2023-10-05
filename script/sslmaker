@@ -64,6 +64,8 @@ sub root {
 
 sub subcommand_revoke {
   my ($self, $cert) = @_;
+  die "Usage: sslmaker revoke /path/to/file.cert\n" unless $cert;
+
   my $sslmaker   = App::sslmaker->new;
   my $passphrase = $self->home->child(qw(private passphrase));
 
@@ -109,7 +111,7 @@ sub subcommand_dhparam {
 
 sub subcommand_generate {
   my ($self, $cn) = @_;
-  die "Usage: $0 generate <CN>\n" unless $cn;
+  die "Usage: sslmaker generate <CN>\n" unless $cn;
 
   my $args = {
     bits    => $self->{bits},
@@ -177,7 +179,7 @@ sub subcommand_intermediate {
 
 sub subcommand_nginx {
   my ($self, $domain) = @_;
-  die "Usage: $0 nginx <domain>\n" unless $domain;
+  die "Usage: sslmaker nginx <domain>\n" unless $domain;
 
   print +App::sslmaker->_render_template(
     'nginx.config',
@@ -195,7 +197,7 @@ sub subcommand_nginx {
 sub subcommand_sign {
   my ($self, $csr, $cert) = @_;
   my $home = $self->home;
-  die "Usage: $0 sign <csr> [cert]\n" unless $csr;
+  die "Usage: sslmaker sign <csr> [cert]\n" unless $csr;
 
   $cert ||= do { local $_ = $csr; s!(\.csr)?\.pem$!\.cert.pem!; $_ };
   my $sslmaker = App::sslmaker->new;
