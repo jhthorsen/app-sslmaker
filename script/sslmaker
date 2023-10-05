@@ -19,6 +19,7 @@ my @options = (
   'home=s    # sslmaker working directory',
   'root=s    # Path to root key.pem. Required for making intermediate key+cert',
   'silent    # Only output data on failure',
+  'h|help    # Show this help text',
 );
 
 my $wrapper = sub {
@@ -233,6 +234,7 @@ run(
   @options,
   sub {
     my ($self, $action, @args) = @_;
+    return print extract_usage if $self->{h};
     return print extract_usage unless $action;
   },
 );
