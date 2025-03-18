@@ -91,7 +91,6 @@ sub make_csr {
   openssl qw(req -new -sha256), $args->{passphrase} ? (-passin => $self->_passphrase($args->{passphrase})) : (),
     (map { (-addext => $_) } grep {length} @{$args->{ext} || []}),
     -key  => $args->{key},
-    -days => $args->{days} || DEFAULT_DAYS,
     -out  => $asset->path,
     -subj => $subject;
 
@@ -498,7 +497,6 @@ See also L</revoke_cert>.
               key        => "/path/to/private/input.key.pem",
               passphrase => "/path/to/passphrase.txt",
               subject    => '/C=NO/ST=Oslo',
-              days       => $number_of_days, # default: 365
               ext        => ["subjectAltName=DNS:example.com"], # optional
             });
 
